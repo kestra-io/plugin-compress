@@ -35,7 +35,7 @@ import javax.validation.constraints.NotNull;
         )
     }
 )
-public class FileCompress extends AbstractArchive implements RunnableTask<FileCompress.Output> {
+public class FileCompress extends AbstractTask implements RunnableTask<FileCompress.Output> {
     @NotNull
     @Schema(
         title = "The file internal storage uri"
