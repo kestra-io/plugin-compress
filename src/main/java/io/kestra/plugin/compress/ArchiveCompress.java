@@ -1,11 +1,13 @@
 package io.kestra.plugin.compress;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
+import io.kestra.core.serializers.JacksonMapper;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -18,6 +20,7 @@ import java.io.*;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
 import javax.validation.constraints.NotNull;
 
@@ -35,18 +38,28 @@ import javax.validation.constraints.NotNull;
             code = {
                 "from:",
                 "  myfile.txt: \"{{ inputs.files }} \"",
-                "algorithm: ZIP"
+                "algorithm: ZIP",
+                "compression: GZIP"
+            }
+        ),
+        @Example(
+            code = {
+                "from: \"{{ outputs.taskId.uri }}\"",
+                "algorithm: ZIP",
+                "compression: GZIP"
             }
         )
     }
 )
 public class ArchiveCompress extends AbstractArchive implements RunnableTask<ArchiveCompress.Output> {
-    @NotNull
     @Schema(
-        title = "The file internal storage uri"
+        title = "The files to compress",
+        description = "the key must be a valid path in the archive and can contains `/` in order to create directory, " +
+            "the value must be a kestra internal storage path."
     )
-    @PluginProperty(dynamic = true)
-    private Map<String, String> from;
+    @PluginProperty(dynamic = true, additionalProperties = String.class)
+    @NotNull
+    private Object from;
 
     public Output run(RunContext runContext) throws Exception {
         File tempFile = runContext.tempFile().toFile();
@@ -55,7 +68,7 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
             if (this.compression != null) {
                 try (
                     CompressorOutputStream compressorOutputStream = this.compressorOutputStream(outputStream);
-                    ArchiveOutputStream archiveInputStream = this.archiveOutputStream(compressorOutputStream);
+                    ArchiveOutputStream archiveInputStream = this.archiveOutputStream(compressorOutputStream)
                 ) {
                     this.writeArchive(runContext, archiveInputStream);
                 }
@@ -71,10 +84,18 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
             .build();
     }
 
+    @SuppressWarnings("unchecked")
     private void writeArchive(RunContext runContext, ArchiveOutputStream archiveInputStream) throws IOException, IllegalVariableEvaluationException {
         Path tempDir = runContext.tempDir();
 
-        for (Map.Entry<String, String> current: this.from.entrySet()) {
+        Map<String, String> from = this.from instanceof String ?
+            JacksonMapper.ofJson().readValue(
+                runContext.render((String) this.from),
+                new TypeReference<HashMap<String, String>>() {}
+            ) :
+            (Map<String, String>) this.from;
+
+        for (Map.Entry<String, String> current : from.entrySet()) {
             // temp file and path
             String finalPath = runContext.render(current.getKey());
             File tempFile = tempDir.resolve(finalPath).toFile();
@@ -106,7 +127,7 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "The url of the zip file on kestra storage"
+            title = "The url of the archive file on kestra storage"
         )
         private final URI uri;
     }
