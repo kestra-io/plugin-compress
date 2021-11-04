@@ -54,8 +54,9 @@ import javax.validation.constraints.NotNull;
 public class ArchiveCompress extends AbstractArchive implements RunnableTask<ArchiveCompress.Output> {
     @Schema(
         title = "The files to compress",
-        description = "the key must be a valid path in the archive and can contains `/` in order to create directory, " +
-            "the value must be a kestra internal storage path."
+        description = "The key must be a valid path in the archive and can contains `/` in order to create directory, " +
+            "the value must be a kestra internal storage path.\n"+
+            "The value can also be a JSON containing multiple keys/values."
     )
     @PluginProperty(dynamic = true, additionalProperties = String.class)
     @NotNull
