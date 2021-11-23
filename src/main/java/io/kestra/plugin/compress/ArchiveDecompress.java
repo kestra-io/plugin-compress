@@ -61,7 +61,7 @@ public class ArchiveDecompress extends AbstractArchive implements RunnableTask<A
         ) {
             if (this.compression != null) {
                 try (
-                    CompressorInputStream compressorInputStream = this.compressorInputStream(fromInputStreamBuffered);
+                    CompressorInputStream compressorInputStream = this.compressorInputStream(this.compression, fromInputStreamBuffered);
                     ArchiveInputStream archiveInputStream = this.archiveInputStream(compressorInputStream);
                 ) {
                     files = this.readArchive(runContext, archiveInputStream);

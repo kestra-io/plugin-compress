@@ -68,7 +68,7 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
         try (BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(tempFile))) {
             if (this.compression != null) {
                 try (
-                    CompressorOutputStream compressorOutputStream = this.compressorOutputStream(outputStream);
+                    CompressorOutputStream compressorOutputStream = this.compressorOutputStream(this.compression, outputStream);
                     ArchiveOutputStream archiveInputStream = this.archiveOutputStream(compressorOutputStream)
                 ) {
                     this.writeArchive(runContext, archiveInputStream);

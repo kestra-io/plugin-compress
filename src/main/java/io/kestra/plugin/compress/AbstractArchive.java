@@ -41,6 +41,12 @@ abstract public class AbstractArchive extends AbstractTask {
     @NotNull
     protected ArchiveAlgorithm algorithm;
 
+    @Schema(
+        title = "The algorithm compression of the archive file"
+    )
+    @PluginProperty(dynamic = false)
+    protected ArchiveDecompress.CompressionAlgorithm compression;
+
     protected ArchiveInputStream archiveInputStream(InputStream inputStream) throws ArchiveException {
         switch (this.algorithm) {
             case AR:

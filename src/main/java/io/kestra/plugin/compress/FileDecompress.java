@@ -35,7 +35,7 @@ import javax.validation.constraints.NotNull;
         )
     }
 )
-public class FileDecompress extends AbstractTask implements RunnableTask<FileDecompress.Output> {
+public class FileDecompress extends AbstractFile implements RunnableTask<FileDecompress.Output> {
     @NotNull
     @Schema(
         title = "The file internal storage uri"
@@ -50,7 +50,7 @@ public class FileDecompress extends AbstractTask implements RunnableTask<FileDec
             OutputStream outputStream = Files.newOutputStream(tempFile);
             InputStream inputStream = runContext.uriToInputStream(URI.create(runContext.render(this.from)));
             InputStream inputStreamBuffer = new BufferedInputStream(inputStream);
-            CompressorInputStream compressorInputStream = this.compressorInputStream(inputStreamBuffer);
+            CompressorInputStream compressorInputStream = this.compressorInputStream(this.compression, inputStreamBuffer);
         ) {
             final byte[] buffer = new byte[8192];
             int n = 0;

@@ -1,9 +1,7 @@
 package io.kestra.plugin.compress;
 
-import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.Task;
 import io.micronaut.core.annotation.Introspected;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -38,7 +36,6 @@ import org.apache.commons.compress.compressors.zstandard.ZstdCompressorOutputStr
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import javax.validation.constraints.NotNull;
 
 @SuperBuilder
 @ToString
@@ -46,15 +43,8 @@ import javax.validation.constraints.NotNull;
 @Getter
 @NoArgsConstructor
 abstract public class AbstractTask extends Task {
-    @Schema(
-        title = "The algorithm compression of the archive file"
-    )
-    @PluginProperty(dynamic = false)
-    @NotNull
-    protected ArchiveDecompress.CompressionAlgorithm compression;
-
-    protected CompressorInputStream compressorInputStream(InputStream inputStream) throws IOException {
-        switch (this.compression) {
+    protected CompressorInputStream compressorInputStream(CompressionAlgorithm compression, InputStream inputStream) throws IOException {
+        switch (compression) {
             case BROTLI:
                 return new BrotliCompressorInputStream(inputStream);
             case BZIP2:
@@ -83,15 +73,15 @@ abstract public class AbstractTask extends Task {
                 return new ZCompressorInputStream(inputStream);
         }
 
-        throw new IllegalArgumentException("Unknown compression '" + this.compression + "'");
+        throw new IllegalArgumentException("Unknown compression '" + compression + "'");
     }
 
-    protected CompressorOutputStream compressorOutputStream(OutputStream outputStream) throws IOException {
-        switch (this.compression) {
+    protected CompressorOutputStream compressorOutputStream(CompressionAlgorithm compression, OutputStream outputStream) throws IOException {
+        switch (compression) {
             case BROTLI:
             case DEFLATE64:
             case SNAPPY:
-                throw new IllegalArgumentException("Not implemented compression '" + this.compression + "'");
+                throw new IllegalArgumentException("Not implemented compression '" + compression + "'");
                  // return new SnappyCompressorOutputStream(outputStream, uncompressedSize);
             case BZIP2:
                 return new BZip2CompressorOutputStream(outputStream);
@@ -113,7 +103,7 @@ abstract public class AbstractTask extends Task {
                 return new ZstdCompressorOutputStream(outputStream);
         }
 
-        throw new IllegalArgumentException("Unknown compression '" + this.compression + "'");
+        throw new IllegalArgumentException("Unknown compression '" + compression + "'");
     }
 
     @Introspected

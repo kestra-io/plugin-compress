@@ -9,10 +9,8 @@ tasks:
   - id: "archive_compress"
     type: io.kestra.plugin.compress.ArchiveCompress
     from: "{{ inputs.json }}"
-    algorithm: "TAR"
-    compression: "GZIP"
+    algorithm: "ZIP"
   - id: 'archive_decompress'
     type: io.kestra.plugin.compress.ArchiveDecompress
     from: "{{ outputs.archive_compress.uri }}"
-    algorithm: "TAR"
-    compression: "GZIP"
+    algorithm: "ZIP"
