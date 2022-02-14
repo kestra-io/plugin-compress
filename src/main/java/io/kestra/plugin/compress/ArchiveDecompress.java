@@ -113,6 +113,7 @@ public class ArchiveDecompress extends AbstractArchive implements RunnableTask<A
         @Schema(
             title = "The url of the zip file on kestra storage"
         )
+        @PluginProperty(additionalProperties = URI.class)
         private final Map<String, URI> files;
     }
 }
