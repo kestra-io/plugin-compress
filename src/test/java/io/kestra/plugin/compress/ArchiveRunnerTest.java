@@ -48,7 +48,7 @@ class ArchiveRunnerTest {
     private StorageInterface storageInterface;
 
     @BeforeEach
-    private void init() throws IOException, URISyntaxException {
+    protected void init() throws IOException, URISyntaxException {
         if (!this.runner.isRunning()) {
             repositoryLoader.load(Objects.requireNonNull(ArchiveRunnerTest.class.getClassLoader().getResource("flows")));
             this.runner.run();
