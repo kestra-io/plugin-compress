@@ -62,10 +62,9 @@ class ArchiveRunnerTest {
         URI f2 = compressUtils.uploadToStorageString("2");
         URI f3 = compressUtils.uploadToStorageString("3");
 
-
         Map<String, URI> inputsContent = ImmutableMap.of("file1.txt", f1, "file2.txt", f2, "file3.txt", f3);
 
-        Map < String, String > inputs = Map.of(
+        Map<String, Object> inputs = Map.of(
             "json", JacksonMapper.ofJson().writeValueAsString(inputsContent)
         );
 
@@ -93,7 +92,7 @@ class ArchiveRunnerTest {
         URI f3 = compressUtils.uploadToStorageString("3");
 
 
-        Map<String, String> inputs = Map.of(
+        Map<String, Object> inputs = Map.of(
             "file1", f1.toString(),
             "file2", f2.toString(),
             "file3", f3.toString()
