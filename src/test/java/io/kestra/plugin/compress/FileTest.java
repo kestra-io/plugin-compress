@@ -67,6 +67,6 @@ class FileTest {
 
         FileDecompress.Output runDecompress = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, ImmutableMap.of()));
 
-        assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(runDecompress.getUri()))), is("1"));
+        assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, runDecompress.getUri()))), is("1"));
     }
 }
