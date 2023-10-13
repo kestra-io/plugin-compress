@@ -69,6 +69,7 @@ class ArchiveRunnerTest {
         );
 
         Execution execution = runnerUtils.runOne(
+            null,
             "io.kestra.plugin-compress",
             "archiveCompressString",
             null,
@@ -80,8 +81,8 @@ class ArchiveRunnerTest {
         assertThat(outputs.size(),is(3));
 
         outputs.entrySet().forEach(throwConsumer( stringStringEntry ->
-            assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(new URI(stringStringEntry.getValue())))),
-            is(CharStreams.toString(new InputStreamReader(storageInterface.get(inputsContent.get(stringStringEntry.getKey()))))))));
+            assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, new URI(stringStringEntry.getValue())))),
+            is(CharStreams.toString(new InputStreamReader(storageInterface.get(null, inputsContent.get(stringStringEntry.getKey()))))))));
     }
 
     @SuppressWarnings("unchecked")
@@ -99,6 +100,7 @@ class ArchiveRunnerTest {
         );
 
         Execution execution = runnerUtils.runOne(
+            null,
             "io.kestra.plugin-compress",
             "archiveCompressMap",
             null,
@@ -110,7 +112,7 @@ class ArchiveRunnerTest {
         Map<String, URI> inputsContent = ImmutableMap.of("f1.txt", f1, "f2.txt", f2, "f3.txt", f3);
 
         outputs.entrySet().forEach(throwConsumer( stringStringEntry ->
-            assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(new URI(stringStringEntry.getValue())))),
-                is(CharStreams.toString(new InputStreamReader(storageInterface.get(inputsContent.get(stringStringEntry.getKey()))))))));
+            assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, new URI(stringStringEntry.getValue())))),
+                is(CharStreams.toString(new InputStreamReader(storageInterface.get(null, inputsContent.get(stringStringEntry.getKey()))))))));
     }
 }

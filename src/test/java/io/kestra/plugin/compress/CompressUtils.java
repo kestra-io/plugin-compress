@@ -18,6 +18,7 @@ class CompressUtils {
 
     URI uploadToStorageString(String content) throws Exception {
         return storageInterface.put(
+            null,
             new URI("/" + IdUtils.create()),
             new ByteArrayInputStream(content.getBytes())
         );
@@ -30,6 +31,7 @@ class CompressUtils {
         );
 
         return storageInterface.put(
+            null,
             new URI("/" + IdUtils.create()),
             new FileInputStream(applicationFile)
         );
