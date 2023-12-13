@@ -87,8 +87,6 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
 
     @SuppressWarnings("unchecked")
     private void writeArchive(RunContext runContext, ArchiveOutputStream archiveInputStream) throws IOException, IllegalVariableEvaluationException {
-        Path tempDir = runContext.tempDir();
-
         Map<String, String> from = this.from instanceof String ?
             JacksonMapper.ofJson().readValue(
                 runContext.render((String) this.from),
@@ -99,7 +97,7 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
         for (Map.Entry<String, String> current : from.entrySet()) {
             // temp file and path
             String finalPath = runContext.render(current.getKey());
-            File tempFile = tempDir.resolve(finalPath).toFile();
+            File tempFile = runContext.resolve(Path.of(finalPath)).toFile();
             new File(tempFile.getParent()).mkdirs();
 
             // write to temp file
