@@ -26,7 +26,7 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 @SuperBuilder
 @ToString
