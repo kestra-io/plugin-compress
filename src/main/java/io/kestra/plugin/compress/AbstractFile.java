@@ -1,32 +1,14 @@
 package io.kestra.plugin.compress;
 
 import io.kestra.core.models.annotations.PluginProperty;
-import io.micronaut.core.annotation.Introspected;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.apache.commons.compress.archivers.ArchiveException;
-import org.apache.commons.compress.archivers.ArchiveInputStream;
-import org.apache.commons.compress.archivers.ArchiveOutputStream;
-import org.apache.commons.compress.archivers.ar.ArArchiveInputStream;
-import org.apache.commons.compress.archivers.ar.ArArchiveOutputStream;
-import org.apache.commons.compress.archivers.arj.ArjArchiveInputStream;
-import org.apache.commons.compress.archivers.cpio.CpioArchiveInputStream;
-import org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream;
-import org.apache.commons.compress.archivers.dump.DumpArchiveInputStream;
-import org.apache.commons.compress.archivers.jar.JarArchiveInputStream;
-import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
-import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
-import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 @SuperBuilder
 @ToString
