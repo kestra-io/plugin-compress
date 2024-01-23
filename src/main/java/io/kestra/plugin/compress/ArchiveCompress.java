@@ -37,7 +37,7 @@ import javax.validation.constraints.NotNull;
         @Example(
             code = {
                 "from:",
-                "  myfile.txt: \"{{ inputs.files }} \"",
+                "  myfile.txt: \"{{ inputs.files }}\"",
                 "algorithm: ZIP",
                 "compression: GZIP"
             }

@@ -29,7 +29,7 @@ import javax.validation.constraints.NotNull;
     examples = {
         @Example(
             code = {
-                "from: \"{{ inputs.files }} \"",
+                "from: \"{{ inputs.files }}\"",
                 "compression: Z"
             }
         )
