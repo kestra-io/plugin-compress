@@ -23,7 +23,7 @@ import javax.validation.constraints.NotNull;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Decompress a file"
+    title = "Decompress a file."
 )
 @Plugin(
     examples = {
@@ -38,7 +38,7 @@ import javax.validation.constraints.NotNull;
 public class FileDecompress extends AbstractFile implements RunnableTask<FileDecompress.Output> {
     @NotNull
     @Schema(
-        title = "The file internal storage uri"
+        title = "The file's internal storage URI."
     )
     @PluginProperty(dynamic = true)
     private String from;
@@ -68,7 +68,7 @@ public class FileDecompress extends AbstractFile implements RunnableTask<FileDec
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "The url of the zip file on kestra storage"
+            title = "URI of the decompressed file on Kestra's internal storage."
         )
         private final URI uri;
     }
