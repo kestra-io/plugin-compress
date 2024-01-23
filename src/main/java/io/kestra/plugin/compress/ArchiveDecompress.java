@@ -31,14 +31,15 @@ import javax.validation.constraints.NotNull;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Decompress an archive file"
+    title = "Decompress an archive file."
 )
 @Plugin(
     examples = {
         @Example(
             code = {
                 "from: \"{{ inputs.files }} \"",
-                "algorithm: ZIP"
+                "algorithm: ZIP",
+                "compression: GZIP"
             }
         )
     }
@@ -46,7 +47,7 @@ import javax.validation.constraints.NotNull;
 public class ArchiveDecompress extends AbstractArchive implements RunnableTask<ArchiveDecompress.Output> {
     @NotNull
     @Schema(
-        title = "The file internal storage uri"
+        title = "The file's internal storage URI."
     )
     @PluginProperty(dynamic = true)
     private String from;
@@ -111,7 +112,7 @@ public class ArchiveDecompress extends AbstractArchive implements RunnableTask<A
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "The url of the zip file on kestra storage"
+            title = "URI of the decompressed archive file on Kestra's internal storage."
         )
         @PluginProperty(additionalProperties = URI.class)
         private final Map<String, URI> files;

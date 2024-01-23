@@ -30,7 +30,7 @@ import javax.validation.constraints.NotNull;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Decompress an archive file"
+    title = "Compress an archive file."
 )
 @Plugin(
     examples = {
@@ -53,9 +53,9 @@ import javax.validation.constraints.NotNull;
 )
 public class ArchiveCompress extends AbstractArchive implements RunnableTask<ArchiveCompress.Output> {
     @Schema(
-        title = "The files to compress",
-        description = "The key must be a valid path in the archive and can contains `/` in order to create directory, " +
-            "the value must be a kestra internal storage path.\n"+
+        title = "The files to compress.",
+        description = "The key must be a valid path in the archive and can contain `/` to represent the directory, " +
+            "the value must be a Kestra internal storage URI.\n"+
             "The value can also be a JSON containing multiple keys/values."
     )
     @PluginProperty(dynamic = true, additionalProperties = String.class)
@@ -126,7 +126,7 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "The url of the archive file on kestra storage"
+            title = "URI of the compressed archive file on Kestra's internal storage."
         )
         private final URI uri;
     }
