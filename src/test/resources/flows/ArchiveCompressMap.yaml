@@ -2,11 +2,11 @@ id: archiveCompressMap
 namespace: io.kestra.plugin-compress
 
 inputs:
-  - name: file1
+  - id: file1
     type: STRING
-  - name: file2
+  - id: file2
     type: STRING
-  - name: file3
+  - id: file3
     type: STRING
 
 tasks:
