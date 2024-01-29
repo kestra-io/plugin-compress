@@ -2,7 +2,7 @@ id: archiveCompressString
 namespace: io.kestra.plugin-compress
 
 inputs:
-  - name: json
+  - id: json
     type: STRING
 
 tasks:
