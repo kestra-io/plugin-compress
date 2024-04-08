@@ -39,13 +39,12 @@ import jakarta.validation.constraints.NotNull;
                 "from:",
                 "  myfile.txt: \"{{ inputs.files }}\"",
                 "algorithm: ZIP",
-                "compression: GZIP"
             }
         ),
         @Example(
             code = {
                 "from: \"{{ outputs.taskId.uri }}\"",
-                "algorithm: ZIP",
+                "algorithm: TAR",
                 "compression: GZIP"
             }
         )
