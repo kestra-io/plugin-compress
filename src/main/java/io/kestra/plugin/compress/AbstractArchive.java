@@ -42,7 +42,7 @@ abstract public class AbstractArchive extends AbstractTask {
     protected ArchiveAlgorithm algorithm;
 
     @Schema(
-        title = "The algorithm compression of the archive file"
+        title = "The compression used for the archive file. Some algorithms focus on compressing individual files (for example GZIP), while others compress and combine multiple files into a single archive. The single-file compressor is often used alongside a separate tool for archiving multiple files (TAR and GZIP for example)"
     )
     @PluginProperty(dynamic = false)
     protected ArchiveDecompress.CompressionAlgorithm compression;
