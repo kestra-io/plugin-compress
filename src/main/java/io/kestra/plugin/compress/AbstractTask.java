@@ -1,7 +1,6 @@
 package io.kestra.plugin.compress;
 
 import io.kestra.core.models.tasks.Task;
-import io.micronaut.core.annotation.Introspected;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -26,7 +25,6 @@ import org.apache.commons.compress.compressors.lzma.LZMACompressorOutputStream;
 import org.apache.commons.compress.compressors.snappy.FramedSnappyCompressorInputStream;
 import org.apache.commons.compress.compressors.snappy.FramedSnappyCompressorOutputStream;
 import org.apache.commons.compress.compressors.snappy.SnappyCompressorInputStream;
-import org.apache.commons.compress.compressors.snappy.SnappyCompressorOutputStream;
 import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
 import org.apache.commons.compress.compressors.xz.XZCompressorOutputStream;
 import org.apache.commons.compress.compressors.z.ZCompressorInputStream;
@@ -106,7 +104,6 @@ abstract public class AbstractTask extends Task {
         throw new IllegalArgumentException("Unknown compression '" + compression + "'");
     }
 
-    @Introspected
     public enum CompressionAlgorithm {
         BROTLI,
         BZIP2,

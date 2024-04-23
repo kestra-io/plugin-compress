@@ -1,7 +1,6 @@
 package io.kestra.plugin.compress;
 
 import io.kestra.core.models.annotations.PluginProperty;
-import io.micronaut.core.annotation.Introspected;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -85,7 +84,6 @@ abstract public class AbstractArchive extends AbstractTask {
         throw new IllegalArgumentException("Unknown algorithm '" + this.algorithm + "'");
     }
 
-    @Introspected
     public enum ArchiveAlgorithm {
         AR,
         ARJ,
