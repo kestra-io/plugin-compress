@@ -57,7 +57,7 @@ public class ArchiveDecompress extends AbstractArchive implements RunnableTask<A
 
         URI from = new URI(runContext.render(this.from));
         try (
-            InputStream fromInputStream = runContext.uriToInputStream(from);
+            InputStream fromInputStream = runContext.storage().getFile(from);
             InputStream fromInputStreamBuffered = new BufferedInputStream(fromInputStream);
         ) {
             if (this.compression != null) {
@@ -97,7 +97,7 @@ public class ArchiveDecompress extends AbstractArchive implements RunnableTask<A
 
                 size = size + entry.getSize();
 
-                files.put(entry.getName(), runContext.putTempFile(path.toFile()));
+                files.put(entry.getName(), runContext.storage().putFile(path.toFile()));
             }
         }
 

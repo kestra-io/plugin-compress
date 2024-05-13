@@ -47,7 +47,7 @@ public class FileDecompress extends AbstractFile implements RunnableTask<FileDec
 
         try (
             OutputStream outputStream = Files.newOutputStream(tempFile);
-            InputStream inputStream = runContext.uriToInputStream(URI.create(runContext.render(this.from)));
+            InputStream inputStream = runContext.storage().getFile(URI.create(runContext.render(this.from)));
             InputStream inputStreamBuffer = new BufferedInputStream(inputStream);
             CompressorInputStream compressorInputStream = this.compressorInputStream(this.compression, inputStreamBuffer);
         ) {
@@ -59,7 +59,7 @@ public class FileDecompress extends AbstractFile implements RunnableTask<FileDec
         }
 
         return Output.builder()
-            .uri(runContext.putTempFile(tempFile.toFile()))
+            .uri(runContext.storage().putFile(tempFile.toFile()))
             .build();
     }
 
