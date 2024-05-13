@@ -80,7 +80,7 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
         }
 
         return Output.builder()
-            .uri(runContext.putTempFile(tempFile))
+            .uri(runContext.storage().putFile(tempFile))
             .build();
     }
 
@@ -102,7 +102,7 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
             // write to temp file
             String render = runContext.render(current.getValue());
             OutputStream fileOutputStream = new BufferedOutputStream(new FileOutputStream(tempFile));
-            InputStream inputStream = runContext.uriToInputStream(URI.create(render));
+            InputStream inputStream = runContext.storage().getFile(URI.create(render));
 
             IOUtils.copy(inputStream, fileOutputStream);
             fileOutputStream.flush();

@@ -2,6 +2,7 @@ package io.kestra.plugin.compress;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
+import io.kestra.core.runners.FlowInputOutput;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.core.storages.StorageInterface;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
@@ -46,6 +47,9 @@ class ArchiveRunnerTest {
 
     @Inject
     private StorageInterface storageInterface;
+    
+    @Inject
+    private FlowInputOutput flowIO;
 
     @BeforeEach
     protected void init() throws IOException, URISyntaxException {
@@ -73,7 +77,7 @@ class ArchiveRunnerTest {
             "io.kestra.plugin-compress",
             "archiveCompressString",
             null,
-            (f, e) -> runnerUtils.typedInputs(f, e, inputs)
+            (f, e) -> flowIO.typedInputs(f, e, inputs)
         );
 
         Map<String, String> outputs = (Map<String, String>) execution.getTaskRunList().get(1).getOutputs().get("files");
@@ -104,7 +108,7 @@ class ArchiveRunnerTest {
             "io.kestra.plugin-compress",
             "archiveCompressMap",
             null,
-            (f, e) -> runnerUtils.typedInputs(f, e, inputs)
+            (f, e) -> flowIO.typedInputs(f, e, inputs)
         );
 
         Map<String, String> outputs = (Map<String, String>) execution.getTaskRunList().get(1).getOutputs().get("files");

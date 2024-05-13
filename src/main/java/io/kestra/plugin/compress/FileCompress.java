@@ -49,7 +49,7 @@ public class FileCompress extends AbstractFile implements RunnableTask<FileCompr
         try (BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(tempFile))) {
             try (
                 CompressorOutputStream compressorOutputStream = this.compressorOutputStream(this.compression, outputStream);
-                InputStream inputStream = runContext.uriToInputStream(URI.create(runContext.render(this.from)))
+                InputStream inputStream = runContext.storage().getFile(URI.create(runContext.render(this.from)))
             ) {
                 final byte[] buffer = new byte[8192];
                 int n = 0;
@@ -61,7 +61,7 @@ public class FileCompress extends AbstractFile implements RunnableTask<FileCompr
         }
 
         return Output.builder()
-            .uri(runContext.putTempFile(tempFile))
+            .uri(runContext.storage().putFile(tempFile))
             .build();
     }
 
