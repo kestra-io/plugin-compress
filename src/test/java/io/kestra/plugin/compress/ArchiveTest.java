@@ -6,6 +6,7 @@ import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.utils.TestsUtils;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import jakarta.inject.Inject;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -14,7 +15,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.stream.Stream;
-import jakarta.inject.Inject;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -76,8 +76,7 @@ class ArchiveTest {
 
         ArchiveDecompress.Output runDecompress = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, ImmutableMap.of()));
 
-        MatcherAssert.assertThat(runDecompress.getFiles().size(), is(3));
-        assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, runDecompress.getFiles().get("folder/subfolder/1.txt")))), is("1"));
+        MatcherAssert.assertThat(runDecompress.getFiles().size(), is(3));assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, runDecompress.getFiles().get("folder/subfolder/1.txt")))), is("1"));
         assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, runDecompress.getFiles().get("folder/2.txt")))), is("2"));
         assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, runDecompress.getFiles().get("3.txt")))), is("3"));
     }
