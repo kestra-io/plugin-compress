@@ -7,6 +7,7 @@ import io.kestra.core.models.executions.metrics.Counter;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -23,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import jakarta.validation.constraints.NotNull;
 
 @SuperBuilder
 @ToString
@@ -90,14 +90,14 @@ public class ArchiveDecompress extends AbstractArchive implements RunnableTask<A
             }
 
             if (!entry.isDirectory()) {
-                Path path = runContext.tempFile();
+                Path path = runContext.file(entry.getName());
                 try (OutputStream o = Files.newOutputStream(path)) {
                     IOUtils.copy(archiveInputStream, o);
                 }
 
                 size = size + entry.getSize();
 
-                files.put(entry.getName(), runContext.storage().putFile(path.toFile()));
+                files.put(entry.getName(), runContext.storage().putFile(path.toFile(), String.valueOf(path.getFileName())));
             }
         }
 
