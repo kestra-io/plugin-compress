@@ -5,7 +5,7 @@ import com.google.common.io.CharStreams;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.utils.TestsUtils;
-import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import io.kestra.core.junit.annotations.KestraTest;
 import jakarta.inject.Inject;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-@MicronautTest
+@KestraTest
 class ArchiveTest {
     @Inject
     private CompressUtils compressUtils;

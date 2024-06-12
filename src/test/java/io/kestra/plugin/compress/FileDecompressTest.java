@@ -5,7 +5,7 @@ import com.google.common.io.CharStreams;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.utils.TestsUtils;
-import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import io.kestra.core.junit.annotations.KestraTest;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -18,7 +18,7 @@ import jakarta.inject.Inject;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-@MicronautTest
+@KestraTest
 class FileDecompressTest {
     @Inject
     private CompressUtils compressUtils;
