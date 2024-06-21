@@ -43,7 +43,7 @@ public class FileDecompress extends AbstractFile implements RunnableTask<FileDec
     private String from;
 
     public Output run(RunContext runContext) throws Exception {
-        Path tempFile = runContext.tempFile();
+        Path tempFile = runContext.workingDir().createTempFile();
 
         try (
             OutputStream outputStream = Files.newOutputStream(tempFile);

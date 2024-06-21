@@ -62,7 +62,7 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
     private Object from;
 
     public Output run(RunContext runContext) throws Exception {
-        File tempFile = runContext.tempFile().toFile();
+        File tempFile = runContext.workingDir().createTempFile().toFile();
 
         try (BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(tempFile))) {
             if (this.compression != null) {
@@ -96,7 +96,7 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
         for (Map.Entry<String, String> current : from.entrySet()) {
             // temp file and path
             String finalPath = runContext.render(current.getKey());
-            File tempFile = runContext.resolve(Path.of(finalPath)).toFile();
+            File tempFile = runContext.workingDir().resolve(Path.of(finalPath)).toFile();
             new File(tempFile.getParent()).mkdirs();
 
             // write to temp file

@@ -90,7 +90,7 @@ public class ArchiveDecompress extends AbstractArchive implements RunnableTask<A
             }
 
             if (!entry.isDirectory()) {
-                Path path = runContext.file(entry.getName());
+                Path path = runContext.workingDir().createFile(entry.getName());
                 try (OutputStream o = Files.newOutputStream(path)) {
                     IOUtils.copy(archiveInputStream, o);
                 }

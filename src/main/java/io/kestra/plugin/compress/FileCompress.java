@@ -44,7 +44,7 @@ public class FileCompress extends AbstractFile implements RunnableTask<FileCompr
     private String from;
 
     public Output run(RunContext runContext) throws Exception {
-        File tempFile = runContext.tempFile().toFile();
+        File tempFile = runContext.workingDir().createTempFile().toFile();
 
         try (BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(tempFile))) {
             try (
