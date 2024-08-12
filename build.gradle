@@ -48,7 +48,7 @@ dependencies {
     compileOnly group: "io.kestra", name: "core", version: kestraVersion
 
     // libs included in the final jar
-    api group: 'org.apache.commons', name: 'commons-compress', version: '1.26.2'
+    api group: 'org.apache.commons', name: 'commons-compress', version: '1.27.0'
     api group: 'commons-codec', name: 'commons-codec', version: '1.17.0'
     api group: 'org.tukaani', name: 'xz', version: '1.9'
     api group: 'com.github.luben', name: 'zstd-jni', version: '1.5.6-3'
