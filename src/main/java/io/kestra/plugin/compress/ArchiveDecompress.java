@@ -36,11 +36,23 @@ import java.util.Map;
 @Plugin(
     examples = {
         @Example(
-            code = {
-                "from: \"{{ inputs.files }}\"",
-                "algorithm: ZIP",
-                "compression: GZIP"
-            }
+            full = true,
+            code = """
+                id: archive_decompress
+                namespace: company.team
+
+                inputs:
+                  - id: file      
+                    description: Compressed file
+                    type: FILE
+
+                tasks:
+                  - id: archive_decompress
+                    type: io.kestra.plugin.compress.ArchiveDecompress
+                    from: "{{ inputs.file }}"
+                    algorithm: ZIP
+                    compression: GZIP
+                """
         )
     }
 )
