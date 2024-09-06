@@ -28,10 +28,22 @@ import jakarta.validation.constraints.NotNull;
 @Plugin(
     examples = {
         @Example(
-            code = {
-                "from: \"{{ inputs.files }}\"",
-                "compression: Z"
-            }
+            full = true,
+            code = """
+                id: file_compress
+                namespace: company.team
+                
+                inputs:
+                  - id: file  
+                    description: File to be compressed
+                    type: FILE
+                
+                tasks:
+                  - id: compress
+                    type: io.kestra.plugin.compress.FileCompress
+                    from: "{{ inputs.file }}"
+                    compression: Z
+                """
         )
     }
 )

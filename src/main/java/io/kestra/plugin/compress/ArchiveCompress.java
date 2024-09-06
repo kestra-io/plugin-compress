@@ -35,18 +35,46 @@ import jakarta.validation.constraints.NotNull;
 @Plugin(
     examples = {
         @Example(
-            code = {
-                "from:",
-                "  myfile.txt: \"{{ inputs.files }}\"",
-                "algorithm: ZIP",
-            }
+            full = true,
+            code = """
+                id: archive_compress
+                namespace: company.team
+
+                inputs:
+                  - id: file
+                    type: FILE
+
+                tasks:
+                  - id: "archive_compress"
+                    type: "io.kestra.plugin.compress.ArchiveCompress"
+                    from:
+                      myfile.txt: "{{ inputs.file }}"
+                    algorithm: ZIP
+                """
         ),
         @Example(
-            code = {
-                "from: \"{{ outputs.taskId.uri }}\"",
-                "algorithm: TAR",
-                "compression: GZIP"
-            }
+            full = true,
+            code = """
+                id: archive_compress
+                namespace: company.team
+
+                tasks:
+                  - id: products_download
+                    type: io.kestra.plugin.core.http.Download
+                    uri: "https://raw.githubusercontent.com/kestra-io/datasets/main/csv/products.csv"
+
+                  - id: orders_download
+                    type: io.kestra.plugin.core.http.Download
+                    uri: "https://raw.githubusercontent.com/kestra-io/datasets/main/csv/orders.csv"
+                
+                  - id: archive_compress
+                    type: "io.kestra.plugin.compress.ArchiveCompress"
+                    from:
+                      products.csv: "{{ outputs.products_download.uri }}"
+                      orders.csv: "{{ outputs.orders_download.uri }}"
+                    algorithm: TAR
+                    compression: GZIP
+                """
         )
     }
 )
