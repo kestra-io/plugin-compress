@@ -77,7 +77,7 @@ class ArchiveRunnerTest {
             "io.kestra.plugin-compress",
             "archiveCompressString",
             null,
-            (f, e) -> flowIO.typedInputs(f, e, inputs)
+            (f, e) -> flowIO.readExecutionInputs(f, e, inputs)
         );
 
         Map<String, String> outputs = (Map<String, String>) execution.getTaskRunList().get(1).getOutputs().get("files");
@@ -108,7 +108,7 @@ class ArchiveRunnerTest {
             "io.kestra.plugin-compress",
             "archiveCompressMap",
             null,
-            (f, e) -> flowIO.typedInputs(f, e, inputs)
+            (f, e) -> flowIO.readExecutionInputs(f, e, inputs)
         );
 
         Map<String, String> outputs = (Map<String, String>) execution.getTaskRunList().get(1).getOutputs().get("files");
