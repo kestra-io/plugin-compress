@@ -1,7 +1,10 @@
 package io.kestra.plugin.compress;
 
-import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.exceptions.IllegalVariableEvaluationException;
+import io.kestra.core.models.property.Property;
+import io.kestra.core.runners.RunContext;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,63 +28,49 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import jakarta.validation.constraints.NotNull;
 
 @SuperBuilder
 @ToString
 @EqualsAndHashCode
 @Getter
 @NoArgsConstructor
-abstract public class AbstractArchive extends AbstractTask {
+public abstract class AbstractArchive extends AbstractTask {
     @Schema(
         title = "The algorithm of the archive file"
     )
-    @PluginProperty(dynamic = false)
     @NotNull
-    protected ArchiveAlgorithm algorithm;
+    protected Property<ArchiveAlgorithm> algorithm;
 
     @Schema(
         title = "The compression used for the archive file. Some algorithms focus on compressing individual files (for example GZIP), while others compress and combine multiple files into a single archive. The single-file compressor is often used alongside a separate tool for archiving multiple files (TAR and GZIP for example)"
     )
-    @PluginProperty(dynamic = false)
-    protected ArchiveDecompress.CompressionAlgorithm compression;
+    protected Property<ArchiveDecompress.CompressionAlgorithm> compression;
 
-    protected ArchiveInputStream archiveInputStream(InputStream inputStream) throws ArchiveException {
-        switch (this.algorithm) {
-            case AR:
-                return new ArArchiveInputStream(inputStream);
-            case ARJ:
-                return new ArjArchiveInputStream(inputStream);
-            case CPIO:
-                return new CpioArchiveInputStream(inputStream);
-            case DUMP:
-                return new DumpArchiveInputStream(inputStream);
-            case JAR:
-                return new JarArchiveInputStream(inputStream);
-            case TAR:
-                return new TarArchiveInputStream(inputStream);
-            case ZIP:
-                return new ZipArchiveInputStream(inputStream);
-        }
+    protected ArchiveInputStream archiveInputStream(InputStream inputStream, RunContext runContext) throws ArchiveException, IllegalVariableEvaluationException {
+        var renderedAlgorithm = runContext.render(this.algorithm).as(ArchiveAlgorithm.class);
+        return switch (renderedAlgorithm.orElseThrow(() -> new IllegalArgumentException("Unknown algorithm"))) {
+            case AR -> new ArArchiveInputStream(inputStream);
+            case ARJ -> new ArjArchiveInputStream(inputStream);
+            case CPIO -> new CpioArchiveInputStream(inputStream);
+            case DUMP -> new DumpArchiveInputStream(inputStream);
+            case JAR -> new JarArchiveInputStream(inputStream);
+            case TAR -> new TarArchiveInputStream(inputStream);
+            case ZIP -> new ZipArchiveInputStream(inputStream);
+        };
 
-        throw new IllegalArgumentException("Unknown algorithm '" + this.algorithm + "'");
     }
 
-    protected ArchiveOutputStream archiveOutputStream(OutputStream outputStream) throws ArchiveException {
-        switch (this.algorithm) {
-            case AR:
-                return new ArArchiveOutputStream(outputStream);
-            case CPIO:
-                return new CpioArchiveOutputStream(outputStream);
-            case JAR:
-                return new JarArchiveOutputStream(outputStream);
-            case TAR:
-                return new TarArchiveOutputStream(outputStream);
-            case ZIP:
-                return new ZipArchiveOutputStream(outputStream);
-        }
+    protected ArchiveOutputStream archiveOutputStream(OutputStream outputStream, RunContext runContext) throws ArchiveException, IllegalVariableEvaluationException {
+        var renderedAlgorithm = runContext.render(this.algorithm).as(ArchiveAlgorithm.class);
+        return switch (renderedAlgorithm.orElseThrow(() -> new IllegalArgumentException("Unknown algorithm"))) {
+            case AR -> new ArArchiveOutputStream(outputStream);
+            case CPIO -> new CpioArchiveOutputStream(outputStream);
+            case JAR -> new JarArchiveOutputStream(outputStream);
+            case TAR -> new TarArchiveOutputStream(outputStream);
+            case ZIP -> new ZipArchiveOutputStream(outputStream);
+            default -> throw new IllegalArgumentException("Unknown algorithm '" + renderedAlgorithm.get() + "'");
+        };
 
-        throw new IllegalArgumentException("Unknown algorithm '" + this.algorithm + "'");
     }
 
     public enum ArchiveAlgorithm {

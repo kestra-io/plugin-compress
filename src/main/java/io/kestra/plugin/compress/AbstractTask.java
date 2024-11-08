@@ -40,68 +40,42 @@ import java.io.OutputStream;
 @EqualsAndHashCode
 @Getter
 @NoArgsConstructor
-abstract public class AbstractTask extends Task {
+public abstract class AbstractTask extends Task {
     protected CompressorInputStream compressorInputStream(CompressionAlgorithm compression, InputStream inputStream) throws IOException {
-        switch (compression) {
-            case BROTLI:
-                return new BrotliCompressorInputStream(inputStream);
-            case BZIP2:
-                return new BZip2CompressorInputStream(inputStream);
-            case DEFLATE:
-                return new DeflateCompressorInputStream(inputStream);
-            case DEFLATE64:
-                return new Deflate64CompressorInputStream(inputStream);
-            case GZIP:
-                return new GzipCompressorInputStream(inputStream);
-            case LZ4BLOCK:
-                return new BlockLZ4CompressorInputStream(inputStream);
-            case LZ4FRAME:
-                return new FramedLZ4CompressorInputStream(inputStream);
-            case LZMA:
-                return new LZMACompressorInputStream(inputStream);
-            case SNAPPY:
-                return new SnappyCompressorInputStream(inputStream);
-            case SNAPPYFRAME:
-                return new FramedSnappyCompressorInputStream(inputStream);
-            case XZ:
-                return new XZCompressorInputStream(inputStream);
-            case ZSTD:
-                return new ZstdCompressorInputStream(inputStream);
-            case Z:
-                return new ZCompressorInputStream(inputStream);
-        }
+        return switch (compression) {
+            case BROTLI -> new BrotliCompressorInputStream(inputStream);
+            case BZIP2 -> new BZip2CompressorInputStream(inputStream);
+            case DEFLATE -> new DeflateCompressorInputStream(inputStream);
+            case DEFLATE64 -> new Deflate64CompressorInputStream(inputStream);
+            case GZIP -> new GzipCompressorInputStream(inputStream);
+            case LZ4BLOCK -> new BlockLZ4CompressorInputStream(inputStream);
+            case LZ4FRAME -> new FramedLZ4CompressorInputStream(inputStream);
+            case LZMA -> new LZMACompressorInputStream(inputStream);
+            case SNAPPY -> new SnappyCompressorInputStream(inputStream);
+            case SNAPPYFRAME -> new FramedSnappyCompressorInputStream(inputStream);
+            case XZ -> new XZCompressorInputStream(inputStream);
+            case ZSTD -> new ZstdCompressorInputStream(inputStream);
+            case Z -> new ZCompressorInputStream(inputStream);
+        };
 
-        throw new IllegalArgumentException("Unknown compression '" + compression + "'");
     }
 
     protected CompressorOutputStream compressorOutputStream(CompressionAlgorithm compression, OutputStream outputStream) throws IOException {
-        switch (compression) {
-            case BROTLI:
-            case DEFLATE64:
-            case SNAPPY:
+        return switch (compression) {
+            case BROTLI, DEFLATE64, SNAPPY ->
                 throw new IllegalArgumentException("Not implemented compression '" + compression + "'");
-                 // return new SnappyCompressorOutputStream(outputStream, uncompressedSize);
-            case BZIP2:
-                return new BZip2CompressorOutputStream(outputStream);
-            case DEFLATE:
-                return new DeflateCompressorOutputStream(outputStream);
-            case GZIP:
-                return new GzipCompressorOutputStream(outputStream);
-            case LZ4BLOCK:
-                return new BlockLZ4CompressorOutputStream(outputStream);
-            case LZ4FRAME:
-                return new FramedLZ4CompressorOutputStream(outputStream);
-            case LZMA:
-                return new LZMACompressorOutputStream(outputStream);
-            case SNAPPYFRAME:
-                return new FramedSnappyCompressorOutputStream(outputStream);
-            case XZ:
-                return new XZCompressorOutputStream(outputStream);
-            case ZSTD:
-                return new ZstdCompressorOutputStream(outputStream);
-        }
+            case BZIP2 -> new BZip2CompressorOutputStream(outputStream);
+            case DEFLATE -> new DeflateCompressorOutputStream(outputStream);
+            case GZIP -> new GzipCompressorOutputStream(outputStream);
+            case LZ4BLOCK -> new BlockLZ4CompressorOutputStream(outputStream);
+            case LZ4FRAME -> new FramedLZ4CompressorOutputStream(outputStream);
+            case LZMA -> new LZMACompressorOutputStream(outputStream);
+            case SNAPPYFRAME -> new FramedSnappyCompressorOutputStream(outputStream);
+            case XZ -> new XZCompressorOutputStream(outputStream);
+            case ZSTD -> new ZstdCompressorOutputStream(outputStream);
+            default -> throw new IllegalArgumentException("Unknown compression '" + compression + "'");
+        };
 
-        throw new IllegalArgumentException("Unknown compression '" + compression + "'");
     }
 
     public enum CompressionAlgorithm {

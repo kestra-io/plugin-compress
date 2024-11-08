@@ -1,11 +1,11 @@
 package io.kestra.plugin.compress;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
+import io.kestra.core.junit.annotations.KestraTest;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.utils.TestsUtils;
-import io.kestra.core.junit.annotations.KestraTest;
 import jakarta.inject.Inject;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -14,6 +14,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -30,6 +31,7 @@ class ArchiveTest {
     @Inject
     private StorageInterface storageInterface;
 
+    //Return pair of <Archive algorithm, CompressionAlgorithm>
     static Stream<Arguments> source() {
         return Stream.of(
             Arguments.of(ArchiveDecompress.ArchiveAlgorithm.TAR, ArchiveDecompress.CompressionAlgorithm.BZIP2),
@@ -55,26 +57,26 @@ class ArchiveTest {
         ArchiveCompress compress = ArchiveCompress.builder()
             .id("unit-test")
             .type(ArchiveCompress.class.getName())
-            .algorithm(format)
-            .compression(compression)
-            .from(ImmutableMap.of(
+            .algorithm(Property.of(format))
+            .compression(compression == null ? null : Property.of(compression))
+            .from(Map.of(
                 "folder/subfolder/1.txt", f1.toString(),
                 "folder/2.txt", f2.toString(),
                 "3.txt", f3.toString()
             ))
             .build();
 
-        ArchiveCompress.Output runCompress = compress.run(TestsUtils.mockRunContext(runContextFactory, compress, ImmutableMap.of()));
+        ArchiveCompress.Output runCompress = compress.run(TestsUtils.mockRunContext(runContextFactory, compress, Map.of()));
 
         ArchiveDecompress decompress = ArchiveDecompress.builder()
             .id("unit-test")
             .type(ArchiveDecompress.class.getName())
-            .algorithm(format)
-            .compression(compression)
-            .from(runCompress.getUri().toString())
+            .algorithm(Property.of(format))
+            .compression(compression == null ? null : Property.of(compression))
+            .from(Property.of(runCompress.getUri().toString()))
             .build();
 
-        ArchiveDecompress.Output runDecompress = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, ImmutableMap.of()));
+        ArchiveDecompress.Output runDecompress = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, Map.of()));
 
         MatcherAssert.assertThat(runDecompress.getFiles().size(), is(3));assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, runDecompress.getFiles().get("folder/subfolder/1.txt")))), is("1"));
         assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, runDecompress.getFiles().get("folder/2.txt")))), is("2"));
