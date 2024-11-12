@@ -4,6 +4,7 @@ import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.executions.metrics.Counter;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -57,30 +58,32 @@ import java.util.Map;
     }
 )
 public class ArchiveDecompress extends AbstractArchive implements RunnableTask<ArchiveDecompress.Output> {
-    @NotNull
     @Schema(
         title = "The file's internal storage URI."
     )
-    @PluginProperty(dynamic = true)
-    private String from;
+    @NotNull
+    private Property<String> from;
 
     public Output run(RunContext runContext) throws Exception {
         Map<String, URI> files;
 
-        URI from = new URI(runContext.render(this.from));
+        URI from = new URI(runContext.render(this.from).as(String.class).orElseThrow());
         try (
             InputStream fromInputStream = runContext.storage().getFile(from);
             InputStream fromInputStreamBuffered = new BufferedInputStream(fromInputStream);
         ) {
             if (this.compression != null) {
                 try (
-                    CompressorInputStream compressorInputStream = this.compressorInputStream(this.compression, fromInputStreamBuffered);
-                    ArchiveInputStream archiveInputStream = this.archiveInputStream(compressorInputStream);
+                    CompressorInputStream compressorInputStream = this.compressorInputStream(
+                        runContext.render(this.compression).as(CompressionAlgorithm.class).orElseThrow(),
+                        fromInputStreamBuffered
+                    );
+                    ArchiveInputStream archiveInputStream = this.archiveInputStream(compressorInputStream, runContext);
                 ) {
                     files = this.readArchive(runContext, archiveInputStream);
                 }
             } else {
-                try (ArchiveInputStream archiveInputStream = this.archiveInputStream(fromInputStreamBuffered)) {
+                try (ArchiveInputStream archiveInputStream = this.archiveInputStream(fromInputStreamBuffered, runContext)) {
                     files = this.readArchive(runContext, archiveInputStream);
                 }
             }

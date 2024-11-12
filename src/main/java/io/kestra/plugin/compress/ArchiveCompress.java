@@ -9,6 +9,7 @@ import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.JacksonMapper;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -22,7 +23,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import jakarta.validation.constraints.NotNull;
 
 @SuperBuilder
 @ToString
@@ -95,13 +95,16 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
         try (BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(tempFile))) {
             if (this.compression != null) {
                 try (
-                    CompressorOutputStream compressorOutputStream = this.compressorOutputStream(this.compression, outputStream);
-                    ArchiveOutputStream archiveInputStream = this.archiveOutputStream(compressorOutputStream)
+                    CompressorOutputStream compressorOutputStream = this.compressorOutputStream(
+                        runContext.render(this.compression).as(CompressionAlgorithm.class).orElseThrow(),
+                        outputStream
+                    );
+                    ArchiveOutputStream archiveInputStream = this.archiveOutputStream(compressorOutputStream, runContext)
                 ) {
                     this.writeArchive(runContext, archiveInputStream);
                 }
             } else {
-                try (ArchiveOutputStream archiveOutputStream = this.archiveOutputStream(outputStream)) {
+                try (ArchiveOutputStream archiveOutputStream = this.archiveOutputStream(outputStream, runContext)) {
                     this.writeArchive(runContext, archiveOutputStream);
                 }
             }

@@ -1,29 +1,28 @@
 package io.kestra.plugin.compress;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
-import io.kestra.core.runners.FlowInputOutput;
-import io.kestra.core.serializers.JacksonMapper;
-import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.junit.annotations.KestraTest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import io.kestra.core.models.executions.Execution;
 import io.kestra.core.repositories.LocalFlowRepositoryLoader;
+import io.kestra.core.runners.FlowInputOutput;
 import io.kestra.core.runners.RunnerUtils;
 import io.kestra.core.runners.StandAloneRunner;
-
-import static io.kestra.core.utils.Rethrow.throwConsumer;
-import static org.hamcrest.Matchers.is;
-
+import io.kestra.core.serializers.JacksonMapper;
+import io.kestra.core.storages.StorageInterface;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.Map;
+import java.util.Objects;
 
+import static io.kestra.core.utils.Rethrow.throwConsumer;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 /**
  * This test will load all flow located in `src/test/resources/flows/`
@@ -66,7 +65,7 @@ class ArchiveRunnerTest {
         URI f2 = compressUtils.uploadToStorageString("2");
         URI f3 = compressUtils.uploadToStorageString("3");
 
-        Map<String, URI> inputsContent = ImmutableMap.of("file1.txt", f1, "file2.txt", f2, "file3.txt", f3);
+        Map<String, URI> inputsContent = Map.of("file1.txt", f1, "file2.txt", f2, "file3.txt", f3);
 
         Map<String, Object> inputs = Map.of(
             "json", JacksonMapper.ofJson().writeValueAsString(inputsContent)
@@ -113,7 +112,7 @@ class ArchiveRunnerTest {
 
         Map<String, String> outputs = (Map<String, String>) execution.getTaskRunList().get(1).getOutputs().get("files");
 
-        Map<String, URI> inputsContent = ImmutableMap.of("f1.txt", f1, "f2.txt", f2, "f3.txt", f3);
+        Map<String, URI> inputsContent = Map.of("f1.txt", f1, "f2.txt", f2, "f3.txt", f3);
 
         outputs.entrySet().forEach(throwConsumer( stringStringEntry ->
             assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, new URI(stringStringEntry.getValue())))),

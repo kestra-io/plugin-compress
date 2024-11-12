@@ -2,10 +2,11 @@ package io.kestra.plugin.compress;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.apache.commons.compress.compressors.CompressorOutputStream;
@@ -15,7 +16,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.URI;
-import jakarta.validation.constraints.NotNull;
 
 @SuperBuilder
 @ToString
@@ -48,20 +48,22 @@ import jakarta.validation.constraints.NotNull;
     }
 )
 public class FileCompress extends AbstractFile implements RunnableTask<FileCompress.Output> {
-    @NotNull
     @Schema(
         title = "The file's internal storage URI."
     )
-    @PluginProperty(dynamic = true)
-    private String from;
+    @NotNull
+    private Property<String> from;
 
     public Output run(RunContext runContext) throws Exception {
         File tempFile = runContext.workingDir().createTempFile().toFile();
 
         try (BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(tempFile))) {
             try (
-                CompressorOutputStream compressorOutputStream = this.compressorOutputStream(this.compression, outputStream);
-                InputStream inputStream = runContext.storage().getFile(URI.create(runContext.render(this.from)))
+                CompressorOutputStream compressorOutputStream = this.compressorOutputStream(
+                    runContext.render(this.compression).as(CompressionAlgorithm.class).orElseThrow(),
+                    outputStream
+                );
+                InputStream inputStream = runContext.storage().getFile(URI.create(runContext.render(this.from).as(String.class).orElseThrow()))
             ) {
                 final byte[] buffer = new byte[8192];
                 int n = 0;
