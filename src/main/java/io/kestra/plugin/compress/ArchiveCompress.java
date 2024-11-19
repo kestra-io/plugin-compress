@@ -14,6 +14,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveOutputStream;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.compressors.CompressorOutputStream;
 import org.apache.commons.io.IOUtils;
 
@@ -66,7 +67,7 @@ import java.util.Map;
                   - id: orders_download
                     type: io.kestra.plugin.core.http.Download
                     uri: "https://raw.githubusercontent.com/kestra-io/datasets/main/csv/orders.csv"
-                
+
                   - id: archive_compress
                     type: "io.kestra.plugin.compress.ArchiveCompress"
                     from:

@@ -66,7 +66,13 @@ public abstract class AbstractArchive extends AbstractTask {
             case AR -> new ArArchiveOutputStream(outputStream);
             case CPIO -> new CpioArchiveOutputStream(outputStream);
             case JAR -> new JarArchiveOutputStream(outputStream);
-            case TAR -> new TarArchiveOutputStream(outputStream);
+            case TAR -> {
+                TarArchiveOutputStream out = new TarArchiveOutputStream(outputStream);
+                out.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX); // allow long file name
+                out.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX); // allow large archive name
+
+                yield out;
+            }
             case ZIP -> new ZipArchiveOutputStream(outputStream);
             default -> throw new IllegalArgumentException("Unknown algorithm '" + renderedAlgorithm.get() + "'");
         };
