@@ -78,8 +78,8 @@ class ArchiveTest {
 
         ArchiveDecompress.Output runDecompress = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, Map.of()));
 
-        MatcherAssert.assertThat(runDecompress.getFiles().size(), is(3));assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, runDecompress.getFiles().get("folder/subfolder/1.txt")))), is("1"));
-        assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, runDecompress.getFiles().get("folder/2.txt")))), is("2"));
-        assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, runDecompress.getFiles().get("3.txt")))), is("3"));
+        MatcherAssert.assertThat(runDecompress.getFiles().size(), is(3));assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, null, runDecompress.getFiles().get("folder/subfolder/1.txt")))), is("1"));
+        assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, null, runDecompress.getFiles().get("folder/2.txt")))), is("2"));
+        assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, null, runDecompress.getFiles().get("3.txt")))), is("3"));
     }
 }
