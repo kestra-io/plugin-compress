@@ -51,7 +51,7 @@ dependencies {
     api group: 'org.apache.commons', name: 'commons-compress', version: '1.27.1'
     api group: 'commons-codec', name: 'commons-codec', version: '1.17.1'
     api group: 'org.tukaani', name: 'xz', version: '1.10'
-    api group: 'com.github.luben', name: 'zstd-jni', version: '1.5.6-7'
+    api group: 'com.github.luben', name: 'zstd-jni', version: '1.5.6-8'
     api group: 'org.brotli', name: 'dec', version: '0.1.2'
 }
 
