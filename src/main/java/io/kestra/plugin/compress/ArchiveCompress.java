@@ -86,7 +86,7 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
             "the value must be a Kestra internal storage URI.\n"+
             "The value can also be a JSON containing multiple keys/values."
     )
-    @PluginProperty(dynamic = true, additionalProperties = String.class)
+    @PluginProperty(dynamic = true, additionalProperties = String.class, internalStorageURI = true)
     @NotNull
     private Object from;
 

@@ -2,6 +2,7 @@ package io.kestra.plugin.compress;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
+import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
@@ -32,12 +33,12 @@ import java.net.URI;
             code = """
                 id: file_compress
                 namespace: company.team
-                
+
                 inputs:
-                  - id: file  
+                  - id: file
                     description: File to be compressed
                     type: FILE
-                
+
                 tasks:
                   - id: compress
                     type: io.kestra.plugin.compress.FileCompress
@@ -52,6 +53,7 @@ public class FileCompress extends AbstractFile implements RunnableTask<FileCompr
         title = "The file's internal storage URI."
     )
     @NotNull
+    @PluginProperty(internalStorageURI = true)
     private Property<String> from;
 
     public Output run(RunContext runContext) throws Exception {

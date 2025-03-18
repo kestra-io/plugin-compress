@@ -43,7 +43,7 @@ import java.util.Map;
                 namespace: company.team
 
                 inputs:
-                  - id: file      
+                  - id: file
                     description: Compressed file
                     type: FILE
 
@@ -62,6 +62,7 @@ public class ArchiveDecompress extends AbstractArchive implements RunnableTask<A
         title = "The file's internal storage URI."
     )
     @NotNull
+    @PluginProperty(internalStorageURI = true)
     private Property<String> from;
 
     public Output run(RunContext runContext) throws Exception {
