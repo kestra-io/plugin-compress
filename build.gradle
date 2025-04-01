@@ -8,7 +8,7 @@ plugins {
     id 'ru.vyarus.github-info' version '2.0.0'
     id 'signing'
     id "io.github.gradle-nexus.publish-plugin" version "2.0.0"
-    id "com.github.ben-manes.versions" version "0.51.0"
+    id "com.github.ben-manes.versions" version "0.52.0"
     id 'net.researchgate.release' version '3.1.0'
 }
 
@@ -49,9 +49,9 @@ dependencies {
 
     // libs included in the final jar
     api group: 'org.apache.commons', name: 'commons-compress', version: '1.27.1'
-    api group: 'commons-codec', name: 'commons-codec', version: '1.17.2'
+    api group: 'commons-codec', name: 'commons-codec', version: '1.18.0'
     api group: 'org.tukaani', name: 'xz', version: '1.10'
-    api group: 'com.github.luben', name: 'zstd-jni', version: '1.5.6-9'
+    api group: 'com.github.luben', name: 'zstd-jni', version: '1.5.7-2'
     api group: 'org.brotli', name: 'dec', version: '0.1.2'
 }
 
@@ -117,7 +117,7 @@ configurations {
 }
 
 dependencies {
-    agent "org.aspectj:aspectjweaver:1.9.22.1"
+    agent "org.aspectj:aspectjweaver:1.9.23"
 }
 
 test {
@@ -198,6 +198,14 @@ release {
     git {
         requireBranch.set('master')
     }
+
+    // Dynamically set properties with default values
+    failOnSnapshotDependencies = (project.hasProperty('release.failOnSnapshotDependencies')
+            ? project.property('release.failOnSnapshotDependencies').toBoolean()
+            : true)
+    pushReleaseVersionBranch = (project.hasProperty('release.pushReleaseVersionBranch')
+            ? project.property('release.pushReleaseVersionBranch').toString()
+            : null)
 }
 
 /**********************************************************************************************************************\
