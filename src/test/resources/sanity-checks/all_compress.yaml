@@ -1,4 +1,4 @@
-id: all
+id: all_compress
 namespace: sanitychecks.plugin-compress
 
 tasks:
