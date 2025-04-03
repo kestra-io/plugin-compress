@@ -37,6 +37,7 @@ import java.util.Map;
     examples = {
         @Example(
             full = true,
+            title = "Compress an input file",
             code = """
                 id: archive_compress
                 namespace: company.team
@@ -55,6 +56,7 @@ import java.util.Map;
         ),
         @Example(
             full = true,
+            title = "Download two files, compress them together and upload to S3 bucket",
             code = """
                 id: archive_compress
                 namespace: company.team
@@ -62,11 +64,11 @@ import java.util.Map;
                 tasks:
                   - id: products_download
                     type: io.kestra.plugin.core.http.Download
-                    uri: "https://raw.githubusercontent.com/kestra-io/datasets/main/csv/products.csv"
+                    uri: "http://huggingface.co/datasets/kestra/datasets/raw/main/csv/products.csv"
 
                   - id: orders_download
                     type: io.kestra.plugin.core.http.Download
-                    uri: "https://raw.githubusercontent.com/kestra-io/datasets/main/csv/orders.csv"
+                    uri: "https://huggingface.co/datasets/kestra/datasets/raw/main/csv/orders.csv"
 
                   - id: archive_compress
                     type: "io.kestra.plugin.compress.ArchiveCompress"
@@ -75,6 +77,15 @@ import java.util.Map;
                       orders.csv: "{{ outputs.orders_download.uri }}"
                     algorithm: TAR
                     compression: GZIP
+
+                  - id: upload_compressed
+                    type: io.kestra.plugin.aws.s3.Upload
+                    bucket: "example"
+                    region: "{{ secret('AWS_REGION') }}"
+                    accessKeyId: "{{ secret('AWS_ACCESS_KEY_ID') }}"
+                    secretKeyId: "{{ secret('AWS_SECRET_KEY_ID') }}"
+                    from: "{{ outputs.archive_compress.uri }}"
+                    key: "archive.gz"
                 """
         )
     }
