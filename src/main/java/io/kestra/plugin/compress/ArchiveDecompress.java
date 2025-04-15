@@ -32,7 +32,8 @@ import java.util.Map;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Decompress an archive file."
+    title = "Decompress an archive file.",
+    description = "Take a zipped file from internal storage or as an input and decompress for use in a flow."
 )
 @Plugin(
     examples = {

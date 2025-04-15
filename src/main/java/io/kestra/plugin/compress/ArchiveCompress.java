@@ -31,7 +31,8 @@ import java.util.Map;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Compress an archive file."
+    title = "Compress an archive file.",
+    description = "Take an inputtedor downloaded file(s) and compress for upload to another location."
 )
 @Plugin(
     examples = {
