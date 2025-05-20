@@ -1,6 +1,7 @@
 package io.kestra.plugin.compress;
 
 import io.kestra.core.storages.StorageInterface;
+import io.kestra.core.tenant.TenantService;
 import io.kestra.core.utils.IdUtils;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -18,7 +19,7 @@ class CompressUtils {
 
     URI uploadToStorageString(String content) throws Exception {
         return storageInterface.put(
-            null,
+            TenantService.MAIN_TENANT,
             null,
             new URI("/" + IdUtils.create()),
             new ByteArrayInputStream(content.getBytes())
@@ -32,7 +33,7 @@ class CompressUtils {
         );
 
         return storageInterface.put(
-            null,
+            TenantService.MAIN_TENANT,
             null,
             new URI("/" + IdUtils.create()),
             new FileInputStream(applicationFile)

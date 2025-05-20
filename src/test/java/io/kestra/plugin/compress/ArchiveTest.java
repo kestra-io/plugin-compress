@@ -5,6 +5,7 @@ import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.storages.StorageInterface;
+import io.kestra.core.tenant.TenantService;
 import io.kestra.core.utils.TestsUtils;
 import jakarta.inject.Inject;
 import org.hamcrest.MatcherAssert;
@@ -78,8 +79,8 @@ class ArchiveTest {
 
         ArchiveDecompress.Output runDecompress = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, Map.of()));
 
-        MatcherAssert.assertThat(runDecompress.getFiles().size(), is(3));assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, null, runDecompress.getFiles().get("folder/subfolder/1.txt")))), is("1"));
-        assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, null, runDecompress.getFiles().get("folder/2.txt")))), is("2"));
-        assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, null, runDecompress.getFiles().get("3.txt")))), is("3"));
+        MatcherAssert.assertThat(runDecompress.getFiles().size(), is(3));assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, runDecompress.getFiles().get("folder/subfolder/1.txt")))), is("1"));
+        assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, runDecompress.getFiles().get("folder/2.txt")))), is("2"));
+        assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, runDecompress.getFiles().get("3.txt")))), is("3"));
     }
 }

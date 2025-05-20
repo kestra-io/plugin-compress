@@ -9,6 +9,7 @@ import io.kestra.core.runners.RunnerUtils;
 import io.kestra.core.runners.StandAloneRunner;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.core.storages.StorageInterface;
+import io.kestra.core.tenant.TenantService;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -72,7 +73,7 @@ class ArchiveRunnerTest {
         );
 
         Execution execution = runnerUtils.runOne(
-            null,
+            TenantService.MAIN_TENANT,
             "io.kestra.plugin-compress",
             "archiveCompressString",
             null,
@@ -84,8 +85,8 @@ class ArchiveRunnerTest {
         assertThat(outputs.size(),is(3));
 
         outputs.entrySet().forEach(throwConsumer( stringStringEntry ->
-            assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, null, new URI(stringStringEntry.getValue())))),
-            is(CharStreams.toString(new InputStreamReader(storageInterface.get(null, null, inputsContent.get(stringStringEntry.getKey()))))))));
+            assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, new URI(stringStringEntry.getValue())))),
+            is(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, inputsContent.get(stringStringEntry.getKey()))))))));
     }
 
     @SuppressWarnings("unchecked")
@@ -103,7 +104,7 @@ class ArchiveRunnerTest {
         );
 
         Execution execution = runnerUtils.runOne(
-            null,
+            TenantService.MAIN_TENANT,
             "io.kestra.plugin-compress",
             "archiveCompressMap",
             null,
@@ -115,7 +116,7 @@ class ArchiveRunnerTest {
         Map<String, URI> inputsContent = Map.of("f1.txt", f1, "f2.txt", f2, "f3.txt", f3);
 
         outputs.entrySet().forEach(throwConsumer( stringStringEntry ->
-            assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(null, null, new URI(stringStringEntry.getValue())))),
-                is(CharStreams.toString(new InputStreamReader(storageInterface.get(null, null, inputsContent.get(stringStringEntry.getKey()))))))));
+            assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, new URI(stringStringEntry.getValue())))),
+                is(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, inputsContent.get(stringStringEntry.getKey()))))))));
     }
 }
