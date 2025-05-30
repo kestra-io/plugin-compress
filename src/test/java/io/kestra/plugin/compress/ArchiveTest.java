@@ -58,8 +58,8 @@ class ArchiveTest {
         ArchiveCompress compress = ArchiveCompress.builder()
             .id("unit-test")
             .type(ArchiveCompress.class.getName())
-            .algorithm(Property.of(format))
-            .compression(compression == null ? null : Property.of(compression))
+            .algorithm(Property.ofValue(format))
+            .compression(compression == null ? null : Property.ofValue(compression))
             .from(Map.of(
                 "folder/subfolder/1.txt", f1.toString(),
                 "folder/2.txt", f2.toString(),
@@ -72,9 +72,9 @@ class ArchiveTest {
         ArchiveDecompress decompress = ArchiveDecompress.builder()
             .id("unit-test")
             .type(ArchiveDecompress.class.getName())
-            .algorithm(Property.of(format))
-            .compression(compression == null ? null : Property.of(compression))
-            .from(Property.of(runCompress.getUri().toString()))
+            .algorithm(Property.ofValue(format))
+            .compression(compression == null ? null : Property.ofValue(compression))
+            .from(Property.ofValue(runCompress.getUri().toString()))
             .build();
 
         ArchiveDecompress.Output runDecompress = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, Map.of()));
