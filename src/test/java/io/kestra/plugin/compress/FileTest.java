@@ -53,8 +53,8 @@ class FileTest {
         FileCompress compress = FileCompress.builder()
             .id("unit-test")
             .type(ArchiveCompress.class.getName())
-            .compression(Property.of(compression))
-            .from(Property.of(f1.toString()))
+            .compression(Property.ofValue(compression))
+            .from(Property.ofValue(f1.toString()))
             .build();
 
         FileCompress.Output runCompress = compress.run(TestsUtils.mockRunContext(runContextFactory, compress, Map.of()));
@@ -62,8 +62,8 @@ class FileTest {
         FileDecompress decompress = FileDecompress.builder()
             .id("unit-test")
             .type(ArchiveDecompress.class.getName())
-            .compression(Property.of(compression))
-            .from(Property.of(runCompress.getUri().toString()))
+            .compression(Property.ofValue(compression))
+            .from(Property.ofValue(runCompress.getUri().toString()))
             .build();
 
         FileDecompress.Output runDecompress = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, Map.of()));
