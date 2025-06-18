@@ -9,6 +9,7 @@ import io.kestra.core.tenant.TenantService;
 import io.kestra.core.utils.TestsUtils;
 import jakarta.inject.Inject;
 import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
 
 @KestraTest
@@ -83,4 +85,31 @@ class ArchiveTest {
         assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, runDecompress.getFiles().get("folder/2.txt")))), is("2"));
         assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, runDecompress.getFiles().get("3.txt")))), is("3"));
     }
+
+    @Test
+    void testArchiveWithSpaces() throws Exception {
+        URI uri = compressUtils.uploadToStorage("decompress/test txt archive.zip");
+
+        ArchiveDecompress decompress = ArchiveDecompress.builder()
+            .id("unit-test")
+            .type(ArchiveDecompress.class.getName())
+            .algorithm(Property.of(ArchiveDecompress.ArchiveAlgorithm.ZIP))
+            .from(Property.of(uri.toString()))
+            .build();
+
+        ArchiveDecompress.Output runDecompress = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, Map.of()));
+
+        // Verify the archive was decompressed correctly
+        assertThat(runDecompress.getFiles().size(), is(1));
+
+        // Verify the content of the file inside the archive
+        String fileName = "test txt folder/test txt file.txt";
+        assertThat(runDecompress.getFiles().get(fileName).toString(), endsWith("test_txt_file.txt"));
+        assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(
+                TenantService.MAIN_TENANT, null, runDecompress.getFiles().get(fileName)))).trim(),
+            is("this is a test"));
+    }
+
+
+
 }
