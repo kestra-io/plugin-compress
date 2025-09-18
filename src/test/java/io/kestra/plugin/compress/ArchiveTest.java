@@ -93,8 +93,8 @@ class ArchiveTest {
         ArchiveDecompress decompress = ArchiveDecompress.builder()
             .id("unit-test")
             .type(ArchiveDecompress.class.getName())
-            .algorithm(Property.of(ArchiveDecompress.ArchiveAlgorithm.ZIP))
-            .from(Property.of(uri.toString()))
+            .algorithm(Property.ofValue(ArchiveDecompress.ArchiveAlgorithm.ZIP))
+            .from(Property.ofValue(uri.toString()))
             .build();
 
         ArchiveDecompress.Output runDecompress = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, Map.of()));
