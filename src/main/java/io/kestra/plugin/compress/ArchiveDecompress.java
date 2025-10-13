@@ -1,6 +1,7 @@
 package io.kestra.plugin.compress;
 
 import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Metric;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.executions.metrics.Counter;
@@ -36,6 +37,10 @@ import java.util.Map;
     description = "Take a zipped file from internal storage or as an input and decompress for use in a flow."
 )
 @Plugin(
+    metrics = {
+        @Metric(name = "size", type = Counter.TYPE, description = "Total size of decompressed files in bytes"),
+        @Metric(name = "count", type = Counter.TYPE, description = "Number of files decompressed")
+    },
     examples = {
         @Example(
             full = true,
