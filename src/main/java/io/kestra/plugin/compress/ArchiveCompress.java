@@ -1,29 +1,29 @@
 package io.kestra.plugin.compress;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.property.Data;
+import io.kestra.core.models.property.URIFetcher;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
-import io.kestra.core.serializers.JacksonMapper;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveOutputStream;
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.compressors.CompressorOutputStream;
 import org.apache.commons.io.IOUtils;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.*;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Map;
+
+import static io.kestra.core.utils.Rethrow.throwConsumer;
 
 @SuperBuilder
 @ToString
@@ -32,7 +32,7 @@ import java.util.Map;
 @NoArgsConstructor
 @Schema(
     title = "Compress an archive file.",
-    description = "Take an inputtedor downloaded file(s) and compress for upload to another location."
+    description = "Take an inputted or downloaded file(s) and compress for upload to another location."
 )
 @Plugin(
     examples = {
@@ -91,14 +91,12 @@ import java.util.Map;
         )
     }
 )
-public class ArchiveCompress extends AbstractArchive implements RunnableTask<ArchiveCompress.Output> {
+public class ArchiveCompress extends AbstractArchive implements RunnableTask<ArchiveCompress.Output>, Data.From {
     @Schema(
-        title = "The files to compress.",
-        description = "The key must be a valid path in the archive and can contain `/` to represent the directory, " +
-            "the value must be a Kestra internal storage URI.\n"+
-            "The value can also be a JSON containing multiple keys/values."
+        title = Data.From.TITLE,
+        description = Data.From.DESCRIPTION
     )
-    @PluginProperty(dynamic = true, additionalProperties = String.class, internalStorageURI = true)
+    @PluginProperty(dynamic = true, additionalProperties = String.class)
     @NotNull
     private Object from;
 
@@ -129,38 +127,39 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
     }
 
     @SuppressWarnings("unchecked")
-    private void writeArchive(RunContext runContext, ArchiveOutputStream archiveInputStream) throws IOException, IllegalVariableEvaluationException {
-        Map<String, String> from = this.from instanceof String ?
-            JacksonMapper.ofJson().readValue(
-                runContext.render((String) this.from),
-                new TypeReference<HashMap<String, String>>() {}
-            ) :
-            (Map<String, String>) this.from;
+    private void writeArchive(RunContext runContext, ArchiveOutputStream archiveInputStream) throws Exception {
+        Data.from(this.from)
+            .read(runContext)
+            .publishOn(Schedulers.boundedElastic())
+            .doOnNext(throwConsumer(map -> {
+                for (Map.Entry<String, Object> current : map.entrySet()) {
 
-        for (Map.Entry<String, String> current : from.entrySet()) {
-            // temp file and path
-            String finalPath = runContext.render(current.getKey());
-            File tempFile = runContext.workingDir().resolve(Path.of(finalPath)).toFile();
-            new File(tempFile.getParent()).mkdirs();
+                    // temp file and path
+                    String finalPath = runContext.render(current.getKey());
+                    File tempFile = runContext.workingDir().resolve(Path.of(finalPath)).toFile();
+                    new File(tempFile.getParent()).mkdirs();
 
-            // write to temp file
-            String render = runContext.render(current.getValue());
-            OutputStream fileOutputStream = new BufferedOutputStream(new FileOutputStream(tempFile));
-            InputStream inputStream = runContext.storage().getFile(URI.create(render));
+                    // write to temp file
+                    String render = runContext.render(current.getValue().toString());
+                    OutputStream fileOutputStream = new BufferedOutputStream(new FileOutputStream(tempFile));
+                    InputStream inputStream = URIFetcher.of(URI.create(render)).fetch(runContext);
 
-            IOUtils.copy(inputStream, fileOutputStream);
-            fileOutputStream.flush();
+                    IOUtils.copy(inputStream, fileOutputStream);
+                    fileOutputStream.flush();
+                    fileOutputStream.close();
 
-            // create archive entry
-            ArchiveEntry entry = archiveInputStream.createArchiveEntry(tempFile, finalPath);
-            archiveInputStream.putArchiveEntry(entry);
+                    // create archive entry
+                    ArchiveEntry entry = archiveInputStream.createArchiveEntry(tempFile, finalPath);
+                    archiveInputStream.putArchiveEntry(entry);
 
-            // write archive entry
-            try (InputStream i = Files.newInputStream(tempFile.toPath())) {
-                IOUtils.copy(i, archiveInputStream);
-            }
-            archiveInputStream.closeArchiveEntry();
-        }
+                    // write archive entry
+                    try (InputStream i = Files.newInputStream(tempFile.toPath())) {
+                        IOUtils.copy(i, archiveInputStream);
+                    }
+                    archiveInputStream.closeArchiveEntry();
+                }
+            }))
+            .blockLast();
 
         archiveInputStream.finish();
     }
