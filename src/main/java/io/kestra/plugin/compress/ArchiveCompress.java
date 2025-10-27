@@ -96,7 +96,6 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
         title = Data.From.TITLE,
         description = Data.From.DESCRIPTION
     )
-    @PluginProperty(dynamic = true, additionalProperties = String.class)
     @NotNull
     private Object from;
 
