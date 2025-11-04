@@ -5,8 +5,8 @@ import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.executions.Execution;
 import io.kestra.core.repositories.LocalFlowRepositoryLoader;
 import io.kestra.core.runners.FlowInputOutput;
-import io.kestra.core.runners.RunnerUtils;
 import io.kestra.core.runners.TestRunner;
+import io.kestra.core.runners.TestRunnerUtils;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
@@ -37,7 +37,7 @@ class ArchiveRunnerTest {
     protected TestRunner runner;
 
     @Inject
-    protected RunnerUtils runnerUtils;
+    protected TestRunnerUtils testRunnerUtils;
 
     @Inject
     protected LocalFlowRepositoryLoader repositoryLoader;
@@ -72,7 +72,7 @@ class ArchiveRunnerTest {
             "json", JacksonMapper.ofJson().writeValueAsString(inputsContent)
         );
 
-        Execution execution = runnerUtils.runOne(
+        Execution execution = testRunnerUtils.runOne(
             TenantService.MAIN_TENANT,
             "io.kestra.plugin-compress",
             "archiveCompressString",
@@ -103,7 +103,7 @@ class ArchiveRunnerTest {
             "file3", f3.toString()
         );
 
-        Execution execution = runnerUtils.runOne(
+        Execution execution = testRunnerUtils.runOne(
             TenantService.MAIN_TENANT,
             "io.kestra.plugin-compress",
             "archiveCompressMap",
