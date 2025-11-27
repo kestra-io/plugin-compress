@@ -52,7 +52,7 @@ dependencies {
     // libs included in the final jar
     api group: 'org.apache.commons', name: 'commons-compress', version: '1.28.0'
     api group: 'commons-codec', name: 'commons-codec', version: '1.20.0'
-    api group: 'org.tukaani', name: 'xz', version: '1.10'
+    api group: 'org.tukaani', name: 'xz', version: '1.11'
     api group: 'com.github.luben', name: 'zstd-jni', version: '1.5.7-6'
     api group: 'org.brotli', name: 'dec', version: '0.1.2'
 }
@@ -119,7 +119,7 @@ configurations {
 }
 
 dependencies {
-    agent "org.aspectj:aspectjweaver:1.9.24"
+    agent "org.aspectj:aspectjweaver:1.9.25"
 }
 
 test {
