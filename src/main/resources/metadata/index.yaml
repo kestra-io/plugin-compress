@@ -1,8 +1,8 @@
 group: io.kestra.plugin.compress
 name: "compress"
 title: "Compression"
-description: "This sub-group of plugins contains tasks for compressing and decompressing files."
-body: ""
+description: "Tasks that compress and decompress files and archives for Kestra flows."
+body: "Use ArchiveCompress, ArchiveDecompress, FileCompress, and FileDecompress to package or extract files stored in Kestra, providing the `from` internal storage URI plus an `algorithm` for archives and a `compression` format for both archive and single-file operations. Outputs return new storage URIs (archives also expose an entry map and size/count metrics), making it easy to pass compressed artifacts to uploads or downstream tasks."
 videos: []
 createdBy: "Kestra Core Team"
 managedBy: "Kestra Core Team"
