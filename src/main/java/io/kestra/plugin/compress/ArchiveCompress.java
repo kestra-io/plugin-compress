@@ -31,8 +31,8 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Compress an archive file.",
-    description = "Take an inputted or downloaded file(s) and compress for upload to another location."
+    title = "Create an archive from multiple files",
+    description = "Builds an archive from rendered file map inputs stored in internal storage, optionally wrapping it with a stream compressor (for example TAR + GZIP). Fails for algorithms that are extract-only."
 )
 @Plugin(
     examples = {
@@ -167,7 +167,7 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "URI of the compressed archive file on Kestra's internal storage."
+            title = "URI of the compressed archive file on Kestra's internal storage"
         )
         private final URI uri;
     }

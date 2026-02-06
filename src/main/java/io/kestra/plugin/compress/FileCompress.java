@@ -24,7 +24,8 @@ import java.net.URI;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Compress a file."
+    title = "Compress a single file",
+    description = "Reads one internal storage file and writes it back with the chosen compression algorithm. Fails for algorithms that are decode-only (Brotli, Deflate64, Snappy variants)."
 )
 @Plugin(
     examples = {
@@ -50,7 +51,7 @@ import java.net.URI;
 )
 public class FileCompress extends AbstractFile implements RunnableTask<FileCompress.Output> {
     @Schema(
-        title = "The file's internal storage URI."
+        title = "Internal storage URI of the source file"
     )
     @NotNull
     @PluginProperty(internalStorageURI = true)
@@ -85,7 +86,7 @@ public class FileCompress extends AbstractFile implements RunnableTask<FileCompr
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "URI of the compressed file on Kestra's internal storage."
+            title = "URI of the compressed file on Kestra's internal storage"
         )
         private final URI uri;
     }
