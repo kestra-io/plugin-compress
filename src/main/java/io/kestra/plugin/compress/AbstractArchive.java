@@ -36,13 +36,15 @@ import java.io.OutputStream;
 @NoArgsConstructor
 public abstract class AbstractArchive extends AbstractTask {
     @Schema(
-        title = "The algorithm of the archive file"
+        title = "Archive container format to create",
+        description = "Required archive format. Compression supports AR, CPIO, JAR, TAR, and ZIP; ARJ and DUMP are extract-only and will fail on compression."
     )
     @NotNull
     protected Property<ArchiveAlgorithm> algorithm;
 
     @Schema(
-        title = "The compression used for the archive file. Some algorithms focus on compressing individual files (for example GZIP), while others compress and combine multiple files into a single archive. The single-file compressor is often used alongside a separate tool for archiving multiple files (TAR and GZIP for example)"
+        title = "Optional compressor applied to the archive stream",
+        description = "Use a single-file compressor such as GZIP alongside TAR. Leave null to store the archive uncompressed. Brotli, Deflate64, and Snappy variants are decode-only and will fail during compression."
     )
     protected Property<ArchiveDecompress.CompressionAlgorithm> compression;
 

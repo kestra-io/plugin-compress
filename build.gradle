@@ -1,11 +1,11 @@
 plugins {
-    id "com.vanniktech.maven.publish" version "0.34.0"
+    id "com.vanniktech.maven.publish" version "0.36.0"
     id "io.kestra.gradle.inject-bom-versions" version "1.0.0"
     id 'java-library'
     id "idea"
     id 'jacoco'
     id "com.adarshr.test-logger" version "4.0.0"
-    id "com.gradleup.shadow" version "9.3.0"
+    id "com.gradleup.shadow" version "9.3.1"
     id 'signing'
     id "com.github.ben-manes.versions" version "0.53.0"
     id 'net.researchgate.release' version '3.1.0'
@@ -51,9 +51,9 @@ dependencies {
 
     // libs included in the final jar
     api group: 'org.apache.commons', name: 'commons-compress', version: '1.28.0'
-    api group: 'commons-codec', name: 'commons-codec', version: '1.20.0'
+    api group: 'commons-codec', name: 'commons-codec', version: '1.21.0'
     api group: 'org.tukaani', name: 'xz', version: '1.11'
-    api group: 'com.github.luben', name: 'zstd-jni', version: '1.5.7-6'
+    api group: 'com.github.luben', name: 'zstd-jni', version: '1.5.7-7'
     api group: 'org.brotli', name: 'dec', version: '0.1.2'
 }
 

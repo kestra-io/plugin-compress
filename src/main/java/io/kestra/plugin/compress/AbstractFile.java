@@ -16,7 +16,8 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 abstract public class AbstractFile extends AbstractTask {
     @Schema(
-        title = "The algorithm compression of the archive file"
+        title = "Compressor applied to the single file",
+        description = "Required compression algorithm for a single file. Brotli, Deflate64, and Snappy variants are decode-only and cannot be used when writing."
     )
     @NotNull
     protected Property<CompressionAlgorithm> compression;

@@ -25,7 +25,8 @@ import java.nio.file.Path;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Decompress a file."
+    title = "Decompress a single file",
+    description = "Expands one compressed file from internal storage using the specified algorithm and stores the decompressed content back to storage. Requires a compressor that supports decoding the provided input."
 )
 @Plugin(
     examples = {
@@ -51,7 +52,7 @@ import java.nio.file.Path;
 )
 public class FileDecompress extends AbstractFile implements RunnableTask<FileDecompress.Output> {
     @Schema(
-        title = "The file's internal storage URI."
+        title = "Internal storage URI of the compressed file"
     )
     @NotNull
     @PluginProperty(internalStorageURI = true)
@@ -85,7 +86,7 @@ public class FileDecompress extends AbstractFile implements RunnableTask<FileDec
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "URI of the decompressed file on Kestra's internal storage."
+            title = "URI of the decompressed file on Kestra's internal storage"
         )
         private final URI uri;
     }

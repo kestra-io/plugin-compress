@@ -33,8 +33,8 @@ import java.util.Map;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Decompress an archive file.",
-    description = "Take a zipped file from internal storage or as an input and decompress for use in a flow."
+    title = "Extract files from an archive",
+    description = "Reads an archive from internal storage, optionally decompresses the stream (for example GZIP over TAR), and writes each entry back to storage with metrics for total size and file count. Entry names with spaces are stored using underscores."
 )
 @Plugin(
     metrics = {
@@ -65,7 +65,7 @@ import java.util.Map;
 )
 public class ArchiveDecompress extends AbstractArchive implements RunnableTask<ArchiveDecompress.Output> {
     @Schema(
-        title = "The file's internal storage URI."
+        title = "Internal storage URI of the archive"
     )
     @NotNull
     @PluginProperty(internalStorageURI = true)
@@ -135,7 +135,7 @@ public class ArchiveDecompress extends AbstractArchive implements RunnableTask<A
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "URI of the decompressed archive file on Kestra's internal storage."
+            title = "URIs of decompressed files on Kestra's internal storage"
         )
         @PluginProperty(additionalProperties = URI.class)
         private final Map<String, URI> files;
