@@ -1,23 +1,26 @@
 package io.kestra.plugin.compress;
 
-import com.google.common.io.CharStreams;
-import io.kestra.core.junit.annotations.KestraTest;
-import io.kestra.core.models.property.Property;
-import io.kestra.core.runners.RunContextFactory;
-import io.kestra.core.storages.StorageInterface;
-import io.kestra.core.tenant.TenantService;
-import io.kestra.core.utils.TestsUtils;
-import jakarta.inject.Inject;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.util.Map;
+import java.util.stream.Stream;
+
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.io.InputStreamReader;
-import java.net.URI;
-import java.util.Map;
-import java.util.stream.Stream;
+import com.google.common.io.CharStreams;
+
+import io.kestra.core.junit.annotations.KestraTest;
+import io.kestra.core.models.property.Property;
+import io.kestra.core.runners.RunContextFactory;
+import io.kestra.core.storages.StorageInterface;
+import io.kestra.core.tenant.TenantService;
+import io.kestra.core.utils.TestsUtils;
+
+import jakarta.inject.Inject;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.endsWith;
@@ -62,11 +65,13 @@ class ArchiveTest {
             .type(ArchiveCompress.class.getName())
             .algorithm(Property.ofValue(format))
             .compression(compression == null ? null : Property.ofValue(compression))
-            .from(Map.of(
-                "folder/subfolder/1.txt", f1.toString(),
-                "folder/2.txt", f2.toString(),
-                "3.txt", f3.toString()
-            ))
+            .from(
+                Map.of(
+                    "folder/subfolder/1.txt", f1.toString(),
+                    "folder/2.txt", f2.toString(),
+                    "3.txt", f3.toString()
+                )
+            )
             .build();
 
         ArchiveCompress.Output runCompress = compress.run(TestsUtils.mockRunContext(runContextFactory, compress, Map.of()));
@@ -81,7 +86,8 @@ class ArchiveTest {
 
         ArchiveDecompress.Output runDecompress = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, Map.of()));
 
-        MatcherAssert.assertThat(runDecompress.getFiles().size(), is(3));assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, runDecompress.getFiles().get("folder/subfolder/1.txt")))), is("1"));
+        MatcherAssert.assertThat(runDecompress.getFiles().size(), is(3));
+        assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, runDecompress.getFiles().get("folder/subfolder/1.txt")))), is("1"));
         assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, runDecompress.getFiles().get("folder/2.txt")))), is("2"));
         assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, runDecompress.getFiles().get("3.txt")))), is("3"));
     }
@@ -105,11 +111,16 @@ class ArchiveTest {
         // Verify the content of the file inside the archive
         String fileName = "test txt folder/test txt file.txt";
         assertThat(runDecompress.getFiles().get(fileName).toString(), endsWith("test_txt_file.txt"));
-        assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(
-                TenantService.MAIN_TENANT, null, runDecompress.getFiles().get(fileName)))).trim(),
-            is("this is a test"));
+        assertThat(
+            CharStreams.toString(
+                new InputStreamReader(
+                    storageInterface.get(
+                        TenantService.MAIN_TENANT, null, runDecompress.getFiles().get(fileName)
+                    )
+                )
+            ).trim(),
+            is("this is a test")
+        );
     }
-
-
 
 }

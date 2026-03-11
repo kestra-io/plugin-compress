@@ -1,27 +1,28 @@
 package io.kestra.plugin.compress;
 
-import io.kestra.core.models.annotations.Example;
-import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.annotations.PluginProperty;
-import io.kestra.core.models.property.Data;
-import io.kestra.core.models.property.URIFetcher;
-import io.kestra.core.models.tasks.RunnableTask;
-import io.kestra.core.runners.RunContext;
-import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveOutputStream;
-import org.apache.commons.compress.compressors.CompressorOutputStream;
-import org.apache.commons.io.IOUtils;
-import reactor.core.scheduler.Schedulers;
-
 import java.io.*;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveOutputStream;
+import org.apache.commons.compress.compressors.CompressorOutputStream;
+import org.apache.commons.io.IOUtils;
+
+import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Plugin;
+import io.kestra.core.models.property.Data;
+import io.kestra.core.models.property.URIFetcher;
+import io.kestra.core.models.tasks.RunnableTask;
+import io.kestra.core.runners.RunContext;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
+import reactor.core.scheduler.Schedulers;
 
 import static io.kestra.core.utils.Rethrow.throwConsumer;
 
@@ -130,7 +131,8 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
         Data.from(this.from)
             .read(runContext)
             .publishOn(Schedulers.boundedElastic())
-            .doOnNext(throwConsumer(map -> {
+            .doOnNext(throwConsumer(map ->
+            {
                 for (Map.Entry<String, Object> current : map.entrySet()) {
 
                     // temp file and path

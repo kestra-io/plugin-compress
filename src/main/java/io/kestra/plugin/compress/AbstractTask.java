@@ -1,11 +1,9 @@
 package io.kestra.plugin.compress;
 
-import io.kestra.core.models.tasks.Task;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
-import lombok.experimental.SuperBuilder;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 import org.apache.commons.compress.compressors.CompressorInputStream;
 import org.apache.commons.compress.compressors.CompressorOutputStream;
 import org.apache.commons.compress.compressors.brotli.BrotliCompressorInputStream;
@@ -31,9 +29,13 @@ import org.apache.commons.compress.compressors.z.ZCompressorInputStream;
 import org.apache.commons.compress.compressors.zstandard.ZstdCompressorInputStream;
 import org.apache.commons.compress.compressors.zstandard.ZstdCompressorOutputStream;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import io.kestra.core.models.tasks.Task;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.experimental.SuperBuilder;
 
 @SuperBuilder
 @ToString

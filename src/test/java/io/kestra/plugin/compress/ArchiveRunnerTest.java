@@ -1,6 +1,17 @@
 package io.kestra.plugin.compress;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Map;
+import java.util.Objects;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import com.google.common.io.CharStreams;
+
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.executions.Execution;
 import io.kestra.core.repositories.LocalFlowRepositoryLoader;
@@ -10,16 +21,8 @@ import io.kestra.core.runners.TestRunnerUtils;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
-import jakarta.inject.Inject;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Map;
-import java.util.Objects;
+import jakarta.inject.Inject;
 
 import static io.kestra.core.utils.Rethrow.throwConsumer;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -82,11 +85,16 @@ class ArchiveRunnerTest {
 
         Map<String, String> outputs = (Map<String, String>) execution.getTaskRunList().get(1).getOutputs().get("files");
 
-        assertThat(outputs.size(),is(3));
+        assertThat(outputs.size(), is(3));
 
-        outputs.entrySet().forEach(throwConsumer( stringStringEntry ->
-            assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, new URI(stringStringEntry.getValue())))),
-            is(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, inputsContent.get(stringStringEntry.getKey()))))))));
+        outputs.entrySet().forEach(
+            throwConsumer(
+                stringStringEntry -> assertThat(
+                    CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, new URI(stringStringEntry.getValue())))),
+                    is(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, inputsContent.get(stringStringEntry.getKey())))))
+                )
+            )
+        );
     }
 
     @SuppressWarnings("unchecked")
@@ -95,7 +103,6 @@ class ArchiveRunnerTest {
         URI f1 = compressUtils.uploadToStorageString("1");
         URI f2 = compressUtils.uploadToStorageString("2");
         URI f3 = compressUtils.uploadToStorageString("3");
-
 
         Map<String, Object> inputs = Map.of(
             "file1", f1.toString(),
@@ -115,8 +122,13 @@ class ArchiveRunnerTest {
 
         Map<String, URI> inputsContent = Map.of("f1.txt", f1, "f2.txt", f2, "f3.txt", f3);
 
-        outputs.entrySet().forEach(throwConsumer( stringStringEntry ->
-            assertThat(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, new URI(stringStringEntry.getValue())))),
-                is(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, inputsContent.get(stringStringEntry.getKey()))))))));
+        outputs.entrySet().forEach(
+            throwConsumer(
+                stringStringEntry -> assertThat(
+                    CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, new URI(stringStringEntry.getValue())))),
+                    is(CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, inputsContent.get(stringStringEntry.getKey())))))
+                )
+            )
+        );
     }
 }
