@@ -3,7 +3,7 @@
 ## What
 
 - Provides plugin components under `io.kestra.plugin.compress`.
-- Includes classes such as `ArchiveCompress`, `ArchiveDecompress`, `FileCompress`, `FileDecompress`.
+- Includes classes such as `ArchiveCompress`, `ArchiveDecompress`, `FileCompress`, `FileDecompress`, `FileEncrypt`, and `FileDecrypt`.
 
 ## Why
 
@@ -25,6 +25,8 @@ Single-module plugin. Source packages under `io.kestra.plugin`:
 - `io.kestra.plugin.compress.ArchiveDecompress`
 - `io.kestra.plugin.compress.FileCompress`
 - `io.kestra.plugin.compress.FileDecompress`
+- `io.kestra.plugin.compress.FileEncrypt`
+- `io.kestra.plugin.compress.FileDecrypt`
 
 ### Project Structure
 

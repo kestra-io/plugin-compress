@@ -56,6 +56,7 @@ dependencies {
     api group: 'org.tukaani', name: 'xz', version: '1.12'
     api group: 'com.github.luben', name: 'zstd-jni', version: '1.5.7-7'
     api group: 'org.brotli', name: 'dec', version: '0.1.2'
+    api 'org.bouncycastle:bcprov-jdk18on:1.80'
 }
 
 
