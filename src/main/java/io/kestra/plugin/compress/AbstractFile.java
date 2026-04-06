@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -21,5 +22,6 @@ abstract public class AbstractFile extends AbstractTask {
         description = "Required compression algorithm for a single file. Brotli, Deflate64, and Snappy variants are decode-only and cannot be used when writing."
     )
     @NotNull
+    @PluginProperty(group = "main")
     protected Property<CompressionAlgorithm> compression;
 }

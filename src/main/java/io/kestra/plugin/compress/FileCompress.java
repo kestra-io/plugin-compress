@@ -56,7 +56,7 @@ public class FileCompress extends AbstractFile implements RunnableTask<FileCompr
         title = "Internal storage URI of the source file"
     )
     @NotNull
-    @PluginProperty(internalStorageURI = true)
+    @PluginProperty(internalStorageURI = true, group = "main")
     private Property<String> from;
 
     public Output run(RunContext runContext) throws Exception {

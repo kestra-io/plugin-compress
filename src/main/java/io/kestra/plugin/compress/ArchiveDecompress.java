@@ -70,7 +70,7 @@ public class ArchiveDecompress extends AbstractArchive implements RunnableTask<A
         title = "Internal storage URI of the archive"
     )
     @NotNull
-    @PluginProperty(internalStorageURI = true)
+    @PluginProperty(internalStorageURI = true, group = "main")
     private Property<String> from;
 
     public Output run(RunContext runContext) throws Exception {
