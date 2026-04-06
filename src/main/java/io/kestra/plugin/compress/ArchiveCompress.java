@@ -25,6 +25,7 @@ import lombok.experimental.SuperBuilder;
 import reactor.core.scheduler.Schedulers;
 
 import static io.kestra.core.utils.Rethrow.throwConsumer;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -98,6 +99,7 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
         description = Data.From.DESCRIPTION
     )
     @NotNull
+    @PluginProperty(group = "main")
     private Object from;
 
     public Output run(RunContext runContext) throws Exception {

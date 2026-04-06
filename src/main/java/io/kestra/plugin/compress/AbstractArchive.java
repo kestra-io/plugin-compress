@@ -30,6 +30,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -42,6 +43,7 @@ public abstract class AbstractArchive extends AbstractTask {
         description = "Required archive format. Compression supports AR, CPIO, JAR, TAR, and ZIP; ARJ and DUMP are extract-only and will fail on compression."
     )
     @NotNull
+    @PluginProperty(group = "main")
     protected Property<ArchiveAlgorithm> algorithm;
 
     @Schema(
