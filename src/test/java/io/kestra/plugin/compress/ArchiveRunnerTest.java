@@ -7,6 +7,8 @@ import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Objects;
 
+import io.kestra.core.exceptions.InternalException;
+import io.kestra.core.services.TaskOutputService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -54,6 +56,9 @@ class ArchiveRunnerTest {
     @Inject
     private FlowInputOutput flowIO;
 
+    @Inject
+    private TaskOutputService taskOutputService;
+
     @BeforeEach
     protected void init() throws IOException, URISyntaxException {
         if (!this.runner.isRunning()) {
@@ -83,7 +88,7 @@ class ArchiveRunnerTest {
             (f, e) -> flowIO.readExecutionInputs(f, e, inputs)
         );
 
-        Map<String, String> outputs = (Map<String, String>) execution.getTaskRunList().get(1).getOutputs().get("files");
+        Map<String, String> outputs = (Map<String, String>) taskOutputService.getOutputs(execution.getTaskRunList().get(1)).get("files");
 
         assertThat(outputs.size(), is(3));
 
@@ -118,7 +123,7 @@ class ArchiveRunnerTest {
             (f, e) -> flowIO.readExecutionInputs(f, e, inputs)
         );
 
-        Map<String, String> outputs = (Map<String, String>) execution.getTaskRunList().get(1).getOutputs().get("files");
+        Map<String, String> outputs = (Map<String, String>) taskOutputService.getOutputs(execution.getTaskRunList().get(1)).get("files");
 
         Map<String, URI> inputsContent = Map.of("f1.txt", f1, "f2.txt", f2, "f3.txt", f3);
 
