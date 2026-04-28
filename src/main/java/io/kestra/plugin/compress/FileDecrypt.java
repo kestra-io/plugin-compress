@@ -150,23 +150,35 @@ public class FileDecrypt extends AbstractFileCrypt implements RunnableTask<FileD
 
         switch (algorithmId) {
             case ALG_PBKDF2_SHA512 -> {
-                algorithm   = KeyDerivation.PBKDF2_SHA512;
-                iterations  = readInt(raw);
-                memoryKb    = 0;
+                algorithm = KeyDerivation.PBKDF2_SHA512;
+                iterations = readInt(raw);
+                memoryKb = 0;
                 parallelism = 0;
+                if (iterations < 1000 || iterations > 10_000_000)
+                    throw new IllegalArgumentException("KESTRAENC: PBKDF2 iterations out of range: " + iterations);
             }
             case ALG_ARGON2ID -> {
-                algorithm   = KeyDerivation.ARGON2ID;
-                iterations  = readInt(raw);
-                memoryKb    = readInt(raw);
+                algorithm = KeyDerivation.ARGON2ID;
+                iterations = readInt(raw);
+                memoryKb = readInt(raw);
                 parallelism = readShort(raw);
+                if (iterations < 1 || iterations > 10_000_000)
+                    throw new IllegalArgumentException("KESTRAENC: Argon2id iterations out of range: " + iterations);
+                if (memoryKb < 8 || memoryKb > 1_048_576)
+                    throw new IllegalArgumentException("KESTRAENC: Argon2id memory out of range: " + memoryKb);
+                if (parallelism < 1 || parallelism > 64)
+                    throw new IllegalArgumentException("KESTRAENC: Argon2id parallelism out of range: " + parallelism);
             }
             case ALG_SCRYPT -> {
-                algorithm   = KeyDerivation.SCRYPT;
-                memoryKb    = readInt(raw);
-                raw.read();
+                algorithm = KeyDerivation.SCRYPT;
+                memoryKb = readInt(raw);
+                raw.read(); // SCRYPT_R byte (fixed at 8, not stored)
                 parallelism = raw.read();
-                iterations  = 0;
+                iterations = 0;
+                if (memoryKb < 2 || memoryKb > 1_048_576)
+                    throw new IllegalArgumentException("KESTRAENC: scrypt N out of range: " + memoryKb);
+                if (parallelism < 1 || parallelism > 255)
+                    throw new IllegalArgumentException("KESTRAENC: scrypt p out of range: " + parallelism);
             }
             default -> throw new IllegalArgumentException(
                 "Unknown KDF algorithm byte: 0x" + Integer.toHexString(algorithmId & 0xFF)
@@ -179,36 +191,36 @@ public class FileDecrypt extends AbstractFileCrypt implements RunnableTask<FileD
 
     private static void decrypt(byte[] keyMaterial, KeyDerivation algorithm, InputStream raw,
                                  Path tempFile) throws Exception {
-        var secretKey = new SecretKeySpec(keyMaterial, 0, 32, "AES");
-
-        Cipher cipher;
-        if (algorithm == KeyDerivation.PBKDF2_SHA256) {
-            var cipherIv = new IvParameterSpec(keyMaterial, 32, 16);
-            Arrays.fill(keyMaterial, (byte) 0);
-            // CBC required: OpenSSL enc uses CBC and cannot decrypt GCM output
-            // No padding oracle risk: files at rest have no oracle for attackers to interact with
-            cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, cipherIv);
-        } else {
-            var gcmNonce = Arrays.copyOfRange(keyMaterial, 32, 44);
-            Arrays.fill(keyMaterial, (byte) 0);
-            cipher = Cipher.getInstance("AES/GCM/NoPadding");
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(128, gcmNonce));
-        }
-
-        try (var out = Files.newOutputStream(tempFile)) {
-            var buffer = new byte[8192];
-            int read;
-            while ((read = raw.read(buffer)) != -1) {
-                var decryptedChunk = cipher.update(buffer, 0, read);
-                if (decryptedChunk != null) out.write(decryptedChunk);
+        try {
+            var secretKey = new SecretKeySpec(keyMaterial, 0, 32, "AES");
+            Cipher cipher;
+            if (algorithm == KeyDerivation.PBKDF2_SHA256) {
+                var cipherIv = new IvParameterSpec(keyMaterial, 32, 16);
+                // CBC required: OpenSSL enc uses CBC and cannot decrypt GCM output
+                // No padding oracle risk: files at rest have no oracle for attackers to interact with
+                cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+                cipher.init(Cipher.DECRYPT_MODE, secretKey, cipherIv);
+            } else {
+                var gcmNonce = Arrays.copyOfRange(keyMaterial, 32, 44);
+                cipher = Cipher.getInstance("AES/GCM/NoPadding");
+                cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(128, gcmNonce));
             }
-            try {
-                var remainingBytes = cipher.doFinal();
-                out.write(remainingBytes);
-            } catch (javax.crypto.BadPaddingException | javax.crypto.IllegalBlockSizeException e) {
-                throw new IllegalStateException("Decryption failed: incorrect password or corrupted file", e);
+            try (var out = Files.newOutputStream(tempFile)) {
+                var buffer = new byte[8192];
+                int read;
+                while ((read = raw.read(buffer)) != -1) {
+                    var decryptedChunk = cipher.update(buffer, 0, read);
+                    if (decryptedChunk != null) out.write(decryptedChunk);
+                }
+                try {
+                    var remainingBytes = cipher.doFinal();
+                    out.write(remainingBytes);
+                } catch (javax.crypto.BadPaddingException | javax.crypto.IllegalBlockSizeException e) {
+                    throw new IllegalStateException("Decryption failed: incorrect password or corrupted file", e);
+                }
             }
+        } finally {
+            Arrays.fill(keyMaterial, (byte) 0);
         }
     }
 

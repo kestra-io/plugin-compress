@@ -134,8 +134,8 @@ public class FileEncrypt extends AbstractFileCrypt implements RunnableTask<FileE
                 out.write(0x01);
                 byte algorithmId = switch (rKeyDerivation) {
                     case PBKDF2_SHA512 -> ALG_PBKDF2_SHA512;
-                    case ARGON2ID      -> ALG_ARGON2ID;
-                    case SCRYPT        -> ALG_SCRYPT;
+                    case ARGON2ID -> ALG_ARGON2ID;
+                    case SCRYPT -> ALG_SCRYPT;
                     default -> throw new IllegalStateException("unexpected algorithm: " + rKeyDerivation);
                 };
                 out.write(algorithmId);
@@ -148,6 +148,8 @@ public class FileEncrypt extends AbstractFileCrypt implements RunnableTask<FileE
                         writeShort(out, rParallelism);
                     }
                     case SCRYPT -> {
+                        if (rParallelism < 1 || rParallelism > 255)
+                            throw new IllegalArgumentException("SCRYPT parallelism must be between 1 and 255, got " + rParallelism);
                         writeInt(out, rMemory);
                         out.write(SCRYPT_R);
                         out.write(rParallelism);

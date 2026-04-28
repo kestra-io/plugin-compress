@@ -19,6 +19,7 @@ import org.bouncycastle.crypto.params.Argon2Parameters;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
+import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
@@ -56,6 +57,7 @@ abstract class AbstractFileCrypt extends Task {
             Use the secret() function to avoid storing the value in plain text."""
     )
     @NotNull
+    @ToString.Exclude
     @PluginProperty(secret = true, group = "connection")
     protected Property<String> password;
 
@@ -112,8 +114,8 @@ abstract class AbstractFileCrypt extends Task {
         return switch (algorithm) {
             case PBKDF2_SHA256 -> derivePbkdf2(password, salt, iterations, "PBKDF2WithHmacSHA256", outputLen);
             case PBKDF2_SHA512 -> derivePbkdf2(password, salt, iterations, "PBKDF2WithHmacSHA512", outputLen);
-            case ARGON2ID      -> deriveArgon2id(password, salt, iterations, memory, parallelism, outputLen);
-            case SCRYPT        -> deriveScrypt(password, salt, memory, parallelism, outputLen);
+            case ARGON2ID -> deriveArgon2id(password, salt, iterations, memory, parallelism, outputLen);
+            case SCRYPT -> deriveScrypt(password, salt, memory, parallelism, outputLen);
         };
     }
 
@@ -137,7 +139,7 @@ abstract class AbstractFileCrypt extends Task {
         var gen = new Argon2BytesGenerator();
         gen.init(new Argon2Parameters.Builder(Argon2Parameters.ARGON2_id)
             .withSalt(salt).withIterations(iterations).withMemoryAsKB(memoryKb).withParallelism(parallelism).build());
-        var passwordBytes = new String(password).getBytes(StandardCharsets.UTF_8);
+        var passwordBytes = toUtf8Bytes(password);
         var output = new byte[outputLen];
         gen.generateBytes(passwordBytes, output);
         Arrays.fill(passwordBytes, (byte) 0);
@@ -145,9 +147,18 @@ abstract class AbstractFileCrypt extends Task {
     }
 
     private static byte[] deriveScrypt(char[] password, byte[] salt, int n, int p, int outputLen) {
-        var passwordBytes = new String(password).getBytes(StandardCharsets.UTF_8);
+        var passwordBytes = toUtf8Bytes(password);
         var result = SCrypt.generate(passwordBytes, salt, n, SCRYPT_R, p, outputLen);
         Arrays.fill(passwordBytes, (byte) 0);
         return result;
+    }
+
+    // Converts char[] to UTF-8 bytes without creating an intermediate String on the heap.
+    private static byte[] toUtf8Bytes(char[] password) {
+        var buf = StandardCharsets.UTF_8.encode(CharBuffer.wrap(password));
+        var bytes = new byte[buf.limit()];
+        buf.get(bytes);
+        Arrays.fill(buf.array(), (byte) 0);
+        return bytes;
     }
 }

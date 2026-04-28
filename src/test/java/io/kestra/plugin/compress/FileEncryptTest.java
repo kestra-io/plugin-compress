@@ -204,6 +204,30 @@ class FileEncryptTest {
     }
 
     @Test
+    void truncatedKestraEncHeaderThrows() throws Exception {
+        // Valid KESTRAENC magic + version + algorithm byte, then EOF before the 16-byte salt
+        var header = new byte[AbstractFileCrypt.KESTRAENC_MAGIC.length + 2];
+        System.arraycopy(AbstractFileCrypt.KESTRAENC_MAGIC, 0, header, 0, AbstractFileCrypt.KESTRAENC_MAGIC.length);
+        header[AbstractFileCrypt.KESTRAENC_MAGIC.length]     = 0x01; // version
+        header[AbstractFileCrypt.KESTRAENC_MAGIC.length + 1] = AbstractFileCrypt.ALG_ARGON2ID;
+
+        URI truncated = compressUtils.uploadToStorageBytes(header);
+
+        FileDecrypt decrypt = FileDecrypt.builder()
+            .id(IdUtils.create())
+            .type(FileDecrypt.class.getName())
+            .from(Property.ofValue(truncated.toString()))
+            .password(Property.ofValue("any-password"))
+            .build();
+
+        IllegalArgumentException ex = assertThrows(
+            IllegalArgumentException.class,
+            () -> decrypt.run(TestsUtils.mockRunContext(runContextFactory, decrypt, Map.of()))
+        );
+        assertThat(ex.getMessage().contains("truncated"), is(true));
+    }
+
+    @Test
     void lowIterationsThrows() {
         IllegalArgumentException ex = assertThrows(
             IllegalArgumentException.class,
