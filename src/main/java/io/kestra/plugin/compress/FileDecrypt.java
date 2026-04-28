@@ -94,7 +94,7 @@ public class FileDecrypt extends AbstractFileCrypt implements RunnableTask<FileD
             try {
                 if (headerBytes.length == KESTRAENC_MAGIC.length && Arrays.equals(headerBytes, KESTRAENC_MAGIC)) {
                     decryptKestraFormat(raw, passChars, tempFile);
-                } else if (headerBytes.length >= 8 && Arrays.equals(Arrays.copyOf(headerBytes, 8), saltedMagic())) {
+                } else if (headerBytes.length >= 8 && Arrays.equals(Arrays.copyOf(headerBytes, 8), SALTED_MAGIC)) {
                     decryptOpensslFormat(raw, headerBytes, rIterations, passChars, tempFile);
                 } else {
                     throw new IllegalArgumentException(
@@ -114,28 +114,21 @@ public class FileDecrypt extends AbstractFileCrypt implements RunnableTask<FileD
 
     private static void decryptOpensslFormat(InputStream raw, byte[] headerBytes, int iterations,
                                               char[] passChars, Path tempFile) throws Exception {
-        int saltBytesAlreadyRead = headerBytes.length - 8;
-        int saltBytesNeeded = 8 - saltBytesAlreadyRead;
-        var saltRemainder = raw.readNBytes(saltBytesNeeded);
-        if (saltRemainder.length != saltBytesNeeded) {
-            throw new IllegalArgumentException(
-                "Input file is truncated: expected 8-byte salt after 'Salted__' header."
-            );
-        }
-        var salt = new byte[8];
-        if (saltBytesAlreadyRead > 0) {
-            salt[0] = headerBytes[8];
-        }
-        System.arraycopy(saltRemainder, 0, salt, saltBytesAlreadyRead, saltBytesNeeded);
-
-        var keyMaterial = deriveKeyAndIv(passChars, salt, KeyDerivation.PBKDF2_SHA256, iterations, 0, 0);
-        decrypt(keyMaterial, KeyDerivation.PBKDF2_SHA256, raw, tempFile);
+        // headerBytes is KESTRAENC_MAGIC.length (9) bytes: SALTED_MAGIC (8) + first salt byte (1)
+        int alreadyRead = headerBytes.length - SALTED_MAGIC.length;
+        var salt = new byte[SALTED_MAGIC.length];
+        if (alreadyRead > 0) salt[0] = headerBytes[SALTED_MAGIC.length];
+        var remaining = raw.readNBytes(SALTED_MAGIC.length - alreadyRead);
+        if (remaining.length != SALTED_MAGIC.length - alreadyRead)
+            throw new IllegalArgumentException("Input file is truncated: expected 8-byte salt after 'Salted__' header.");
+        System.arraycopy(remaining, 0, salt, alreadyRead, remaining.length);
+        decrypt(deriveKeyAndIv(passChars, salt, KeyDerivation.PBKDF2_SHA256, iterations, 0, 0), KeyDerivation.PBKDF2_SHA256, raw, tempFile);
     }
 
     private static void decryptKestraFormat(InputStream raw, char[] passChars, Path tempFile) throws Exception {
         var dis = new DataInputStream(raw);
         var version = dis.read();
-        if (version != 0x01) {
+        if (version != KESTRAENC_VERSION) {
             throw new IllegalArgumentException("Unsupported KESTRAENC format version: " + version);
         }
         var algorithmId = (byte) dis.read();
@@ -179,29 +172,28 @@ public class FileDecrypt extends AbstractFileCrypt implements RunnableTask<FileD
     private static void decrypt(byte[] keyMaterial, KeyDerivation algorithm, InputStream raw,
                                  Path tempFile) throws Exception {
         try {
-            var secretKey = new SecretKeySpec(keyMaterial, 0, 32, "AES");
+            var secretKey = new SecretKeySpec(keyMaterial, 0, KEY_LEN, "AES");
             Cipher cipher;
             if (algorithm == KeyDerivation.PBKDF2_SHA256) {
-                var cipherIv = new IvParameterSpec(keyMaterial, 32, 16);
+                var cipherIv = new IvParameterSpec(keyMaterial, KEY_LEN, CBC_IV_LEN);
                 // CBC required: OpenSSL enc uses CBC and cannot decrypt GCM output
                 // No padding oracle risk: files at rest have no oracle for attackers to interact with
-                cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+                cipher = Cipher.getInstance(CIPHER_CBC);
                 cipher.init(Cipher.DECRYPT_MODE, secretKey, cipherIv);
             } else {
-                var gcmNonce = Arrays.copyOfRange(keyMaterial, 32, 44);
-                cipher = Cipher.getInstance("AES/GCM/NoPadding");
-                cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(128, gcmNonce));
+                var gcmNonce = Arrays.copyOfRange(keyMaterial, KEY_LEN, KEY_LEN + GCM_NONCE_LEN);
+                cipher = Cipher.getInstance(CIPHER_GCM);
+                cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_BITS, gcmNonce));
             }
             try (var out = Files.newOutputStream(tempFile)) {
                 var buffer = new byte[8192];
                 int read;
                 while ((read = raw.read(buffer)) != -1) {
-                    var decryptedChunk = cipher.update(buffer, 0, read);
-                    if (decryptedChunk != null) out.write(decryptedChunk);
+                    var chunk = cipher.update(buffer, 0, read);
+                    if (chunk != null) out.write(chunk);
                 }
                 try {
-                    var remainingBytes = cipher.doFinal();
-                    out.write(remainingBytes);
+                    out.write(cipher.doFinal());
                 } catch (javax.crypto.BadPaddingException | javax.crypto.IllegalBlockSizeException e) {
                     throw new IllegalStateException("Decryption failed: incorrect password or corrupted file", e);
                 }

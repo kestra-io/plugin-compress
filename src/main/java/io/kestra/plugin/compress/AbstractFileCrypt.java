@@ -32,18 +32,21 @@ import java.util.Arrays;
 @NoArgsConstructor
 abstract class AbstractFileCrypt extends Task {
 
-    private static final String SALTED_MAGIC_STR = "Salted__";
-
-    protected static byte[] saltedMagic() {
-        return SALTED_MAGIC_STR.getBytes(StandardCharsets.US_ASCII);
-    }
-
+    static final byte[] SALTED_MAGIC   = "Salted__".getBytes(StandardCharsets.US_ASCII);
     static final byte[] KESTRAENC_MAGIC = "KESTRAENC".getBytes(StandardCharsets.US_ASCII);
 
-    static final byte ALG_PBKDF2_SHA512 = 0x02;
-    static final byte ALG_ARGON2ID      = 0x03;
-    static final byte ALG_SCRYPT        = 0x04;
-    static final int  SCRYPT_R          = 8;
+    static final byte KESTRAENC_VERSION  = 0x01;
+    static final byte ALG_PBKDF2_SHA512  = 0x02;
+    static final byte ALG_ARGON2ID       = 0x03;
+    static final byte ALG_SCRYPT         = 0x04;
+    static final int  SCRYPT_R           = 8;
+
+    static final String CIPHER_CBC       = "AES/CBC/PKCS5Padding";
+    static final String CIPHER_GCM       = "AES/GCM/NoPadding";
+    static final int    KEY_LEN          = 32;
+    static final int    CBC_IV_LEN       = 16;
+    static final int    GCM_NONCE_LEN    = 12;
+    static final int    GCM_TAG_BITS     = 128;
 
     @Schema(title = "Internal storage URI of the source file")
     @NotNull

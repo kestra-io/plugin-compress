@@ -106,32 +106,32 @@ public class FileEncrypt extends AbstractFileCrypt implements RunnableTask<FileE
         } finally {
             Arrays.fill(passChars, '\0');
         }
-        var secretKey = new SecretKeySpec(keyMaterial, 0, 32, "AES");
+        var secretKey = new SecretKeySpec(keyMaterial, 0, KEY_LEN, "AES");
 
         Cipher cipher;
         if (opensslFormat) {
-            var cipherIv = new IvParameterSpec(keyMaterial, 32, 16);
+            var cipherIv = new IvParameterSpec(keyMaterial, KEY_LEN, CBC_IV_LEN);
             Arrays.fill(keyMaterial, (byte) 0);
             // CBC required: OpenSSL enc uses CBC and cannot decrypt GCM output
             // No padding oracle risk: files at rest have no oracle for attackers to interact with
-            cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher = Cipher.getInstance(CIPHER_CBC);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, cipherIv);
         } else {
-            var gcmNonce = Arrays.copyOfRange(keyMaterial, 32, 44);
+            var gcmNonce = Arrays.copyOfRange(keyMaterial, KEY_LEN, KEY_LEN + GCM_NONCE_LEN);
             Arrays.fill(keyMaterial, (byte) 0);
-            cipher = Cipher.getInstance("AES/GCM/NoPadding");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(128, gcmNonce));
+            cipher = Cipher.getInstance(CIPHER_GCM);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_BITS, gcmNonce));
         }
 
         var tempFile = runContext.workingDir().createTempFile();
 
         try (var out = new DataOutputStream(Files.newOutputStream(tempFile))) {
             if (opensslFormat) {
-                out.write(saltedMagic());
+                out.write(SALTED_MAGIC);
                 out.write(salt);
             } else {
                 out.write(KESTRAENC_MAGIC);
-                out.write(0x01);
+                out.write(KESTRAENC_VERSION);
                 byte algorithmId = switch (rKeyDerivation) {
                     case PBKDF2_SHA512 -> ALG_PBKDF2_SHA512;
                     case ARGON2ID -> ALG_ARGON2ID;
