@@ -17,8 +17,8 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.DataInputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -133,42 +133,46 @@ public class FileDecrypt extends AbstractFileCrypt implements RunnableTask<FileD
     }
 
     private static void decryptKestraFormat(InputStream raw, char[] passChars, Path tempFile) throws Exception {
-        var version = raw.read();
+        var dis = new DataInputStream(raw);
+        var version = dis.read();
         if (version != 0x01) {
             throw new IllegalArgumentException("Unsupported KESTRAENC format version: " + version);
         }
-        var algorithmId = (byte) raw.read();
-        var salt = raw.readNBytes(16);
+        var algorithmId = (byte) dis.read();
+        var salt = dis.readNBytes(16);
         if (salt.length != 16) {
             throw new IllegalArgumentException("Input file is truncated: expected 16-byte salt.");
         }
-        if (algorithmId == ALG_PBKDF2_SHA512) {
-            var iterations = readInt(raw);
-            if (iterations < 1000 || iterations > 10_000_000)
-                throw new IllegalArgumentException("KESTRAENC: PBKDF2 iterations out of range: " + iterations);
-            decrypt(deriveKeyAndIv(passChars, salt, KeyDerivation.PBKDF2_SHA512, iterations, 0, 0), KeyDerivation.PBKDF2_SHA512, raw, tempFile);
-        } else if (algorithmId == ALG_ARGON2ID) {
-            var iterations = readInt(raw);
-            var memoryKb = readInt(raw);
-            var parallelism = readShort(raw);
-            if (iterations < 1 || iterations > 10_000_000)
-                throw new IllegalArgumentException("KESTRAENC: Argon2id iterations out of range: " + iterations);
-            if (memoryKb < 8 || memoryKb > 1_048_576)
-                throw new IllegalArgumentException("KESTRAENC: Argon2id memory out of range: " + memoryKb);
-            if (parallelism < 1 || parallelism > 64)
-                throw new IllegalArgumentException("KESTRAENC: Argon2id parallelism out of range: " + parallelism);
-            decrypt(deriveKeyAndIv(passChars, salt, KeyDerivation.ARGON2ID, iterations, memoryKb, parallelism), KeyDerivation.ARGON2ID, raw, tempFile);
-        } else if (algorithmId == ALG_SCRYPT) {
-            var memoryKb = readInt(raw);
-            raw.read(); // SCRYPT_R byte (fixed at 8, not stored)
-            var parallelism = raw.read();
-            if (memoryKb < 2 || memoryKb > 1_048_576)
-                throw new IllegalArgumentException("KESTRAENC: scrypt N out of range: " + memoryKb);
-            if (parallelism < 1 || parallelism > 255)
-                throw new IllegalArgumentException("KESTRAENC: scrypt p out of range: " + parallelism);
-            decrypt(deriveKeyAndIv(passChars, salt, KeyDerivation.SCRYPT, 0, memoryKb, parallelism), KeyDerivation.SCRYPT, raw, tempFile);
-        } else {
-            throw new IllegalArgumentException("Unknown KDF algorithm byte: 0x" + Integer.toHexString(algorithmId & 0xFF));
+        switch (algorithmId) {
+            case ALG_PBKDF2_SHA512 -> {
+                var iterations = dis.readInt();
+                if (iterations < 1000 || iterations > 10_000_000)
+                    throw new IllegalArgumentException("KESTRAENC: PBKDF2 iterations out of range: " + iterations);
+                decrypt(deriveKeyAndIv(passChars, salt, KeyDerivation.PBKDF2_SHA512, iterations, 0, 0), KeyDerivation.PBKDF2_SHA512, dis, tempFile);
+            }
+            case ALG_ARGON2ID -> {
+                var iterations = dis.readInt();
+                var memoryKb = dis.readInt();
+                var parallelism = dis.readUnsignedShort();
+                if (iterations < 1 || iterations > 10_000_000)
+                    throw new IllegalArgumentException("KESTRAENC: Argon2id iterations out of range: " + iterations);
+                if (memoryKb < 8 || memoryKb > 1_048_576)
+                    throw new IllegalArgumentException("KESTRAENC: Argon2id memory out of range: " + memoryKb);
+                if (parallelism < 1 || parallelism > 64)
+                    throw new IllegalArgumentException("KESTRAENC: Argon2id parallelism out of range: " + parallelism);
+                decrypt(deriveKeyAndIv(passChars, salt, KeyDerivation.ARGON2ID, iterations, memoryKb, parallelism), KeyDerivation.ARGON2ID, dis, tempFile);
+            }
+            case ALG_SCRYPT -> {
+                var memoryKb = dis.readInt();
+                dis.read(); // SCRYPT_R byte (fixed at 8, not stored)
+                var parallelism = dis.read();
+                if (memoryKb < 2 || memoryKb > 1_048_576)
+                    throw new IllegalArgumentException("KESTRAENC: scrypt N out of range: " + memoryKb);
+                if (parallelism < 1 || parallelism > 255)
+                    throw new IllegalArgumentException("KESTRAENC: scrypt p out of range: " + parallelism);
+                decrypt(deriveKeyAndIv(passChars, salt, KeyDerivation.SCRYPT, 0, memoryKb, parallelism), KeyDerivation.SCRYPT, dis, tempFile);
+            }
+            default -> throw new IllegalArgumentException("Unknown KDF algorithm byte: 0x" + Integer.toHexString(algorithmId & 0xFF));
         }
     }
 
@@ -205,18 +209,6 @@ public class FileDecrypt extends AbstractFileCrypt implements RunnableTask<FileD
         } finally {
             Arrays.fill(keyMaterial, (byte) 0);
         }
-    }
-
-    private static int readInt(InputStream in) throws java.io.IOException {
-        var bytes = in.readNBytes(4);
-        if (bytes.length != 4) throw new java.io.IOException("Truncated header: expected 4 bytes.");
-        return ((bytes[0] & 0xFF) << 24) | ((bytes[1] & 0xFF) << 16) | ((bytes[2] & 0xFF) << 8) | (bytes[3] & 0xFF);
-    }
-
-    private static int readShort(InputStream in) throws java.io.IOException {
-        var bytes = in.readNBytes(2);
-        if (bytes.length != 2) throw new java.io.IOException("Truncated header: expected 2 bytes.");
-        return ((bytes[0] & 0xFF) << 8) | (bytes[1] & 0xFF);
     }
 
     @Builder

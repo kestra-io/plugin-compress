@@ -18,7 +18,7 @@ import javax.crypto.CipherOutputStream;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.OutputStream;
+import java.io.DataOutputStream;
 import java.net.URI;
 import java.nio.file.Files;
 import java.security.SecureRandom;
@@ -125,7 +125,7 @@ public class FileEncrypt extends AbstractFileCrypt implements RunnableTask<FileE
 
         var tempFile = runContext.workingDir().createTempFile();
 
-        try (var out = Files.newOutputStream(tempFile)) {
+        try (var out = new DataOutputStream(Files.newOutputStream(tempFile))) {
             if (opensslFormat) {
                 out.write(saltedMagic());
                 out.write(salt);
@@ -141,16 +141,12 @@ public class FileEncrypt extends AbstractFileCrypt implements RunnableTask<FileE
                 out.write(algorithmId);
                 out.write(salt);
                 switch (rKeyDerivation) {
-                    case PBKDF2_SHA512 -> writeInt(out, rIterations);
-                    case ARGON2ID -> {
-                        writeInt(out, rIterations);
-                        writeInt(out, rMemory);
-                        writeShort(out, rParallelism);
-                    }
+                    case PBKDF2_SHA512 -> out.writeInt(rIterations);
+                    case ARGON2ID -> { out.writeInt(rIterations); out.writeInt(rMemory); out.writeShort(rParallelism); }
                     case SCRYPT -> {
                         if (rParallelism < 1 || rParallelism > 255)
                             throw new IllegalArgumentException("SCRYPT parallelism must be between 1 and 255, got " + rParallelism);
-                        writeInt(out, rMemory);
+                        out.writeInt(rMemory);
                         out.write(SCRYPT_R);
                         out.write(rParallelism);
                     }
@@ -168,18 +164,6 @@ public class FileEncrypt extends AbstractFileCrypt implements RunnableTask<FileE
         return Output.builder()
             .uri(runContext.storage().putFile(tempFile.toFile()))
             .build();
-    }
-
-    private static void writeInt(OutputStream out, int value) throws java.io.IOException {
-        out.write((value >>> 24) & 0xFF);
-        out.write((value >>> 16) & 0xFF);
-        out.write((value >>>  8) & 0xFF);
-        out.write( value         & 0xFF);
-    }
-
-    private static void writeShort(OutputStream out, int value) throws java.io.IOException {
-        out.write((value >>> 8) & 0xFF);
-        out.write( value        & 0xFF);
     }
 
     @Builder
