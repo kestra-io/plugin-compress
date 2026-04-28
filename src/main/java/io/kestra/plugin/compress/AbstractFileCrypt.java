@@ -107,10 +107,7 @@ abstract class AbstractFileCrypt extends Task {
     @PluginProperty(group = "advanced")
     protected Property<Integer> parallelism = Property.ofValue(1);
 
-    static byte[] deriveKeyAndIv(char[] password, byte[] salt, KeyDerivation algorithm,
-                                  int iterations, int memory, int parallelism)
-            throws NoSuchAlgorithmException, InvalidKeySpecException {
-        // PBKDF2_SHA256 uses AES-CBC (16-byte IV), all others use AES-GCM (12-byte nonce).
+    static byte[] deriveKeyAndIv(char[] password, byte[] salt, KeyDerivation algorithm, int iterations, int memory, int parallelism) throws NoSuchAlgorithmException, InvalidKeySpecException {
         int outputLen = (algorithm == KeyDerivation.PBKDF2_SHA256) ? 48 : 44;
         return switch (algorithm) {
             case PBKDF2_SHA256 -> derivePbkdf2(password, salt, iterations, "PBKDF2WithHmacSHA256", outputLen);
@@ -120,40 +117,26 @@ abstract class AbstractFileCrypt extends Task {
         };
     }
 
-    /**
-     * Kept for backward compatibility with existing tests that call deriveKeyAndIv directly.
-     * Delegates to PBKDF2_SHA256 (OpenSSL-compatible, AES-CBC) derivation producing 48 bytes.
-     */
-    static byte[] deriveKeyAndIv(char[] password, byte[] salt, int iterations)
-            throws NoSuchAlgorithmException, InvalidKeySpecException {
+    static byte[] deriveKeyAndIv(char[] password, byte[] salt, int iterations) throws NoSuchAlgorithmException, InvalidKeySpecException {
         return derivePbkdf2(password, salt, iterations, "PBKDF2WithHmacSHA256", 48);
     }
 
-    private static byte[] derivePbkdf2(char[] password, byte[] salt, int iterations, String algorithm,
-                                        int outputLen)
-            throws NoSuchAlgorithmException, InvalidKeySpecException {
+    private static byte[] derivePbkdf2(char[] password, byte[] salt, int iterations, String algorithm, int outputLen) throws NoSuchAlgorithmException, InvalidKeySpecException {
         if (iterations < 1000) {
             throw new IllegalArgumentException("iterations must be >= 1000, got " + iterations);
         }
-        var factory = SecretKeyFactory.getInstance(algorithm);
         var spec = new PBEKeySpec(password, salt, iterations, outputLen * 8);
         try {
-            return factory.generateSecret(spec).getEncoded();
+            return SecretKeyFactory.getInstance(algorithm).generateSecret(spec).getEncoded();
         } finally {
             spec.clearPassword();
         }
     }
 
-    private static byte[] deriveArgon2id(char[] password, byte[] salt, int iterations,
-                                          int memoryKb, int parallelism, int outputLen) {
-        var params = new Argon2Parameters.Builder(Argon2Parameters.ARGON2_id)
-            .withSalt(salt)
-            .withIterations(iterations)
-            .withMemoryAsKB(memoryKb)
-            .withParallelism(parallelism)
-            .build();
+    private static byte[] deriveArgon2id(char[] password, byte[] salt, int iterations, int memoryKb, int parallelism, int outputLen) {
         var gen = new Argon2BytesGenerator();
-        gen.init(params);
+        gen.init(new Argon2Parameters.Builder(Argon2Parameters.ARGON2_id)
+            .withSalt(salt).withIterations(iterations).withMemoryAsKB(memoryKb).withParallelism(parallelism).build());
         var passwordBytes = new String(password).getBytes(StandardCharsets.UTF_8);
         var output = new byte[outputLen];
         gen.generateBytes(passwordBytes, output);
@@ -163,8 +146,8 @@ abstract class AbstractFileCrypt extends Task {
 
     private static byte[] deriveScrypt(char[] password, byte[] salt, int n, int p, int outputLen) {
         var passwordBytes = new String(password).getBytes(StandardCharsets.UTF_8);
-        var output = SCrypt.generate(passwordBytes, salt, n, SCRYPT_R, p, outputLen);
+        var result = SCrypt.generate(passwordBytes, salt, n, SCRYPT_R, p, outputLen);
         Arrays.fill(passwordBytes, (byte) 0);
-        return output;
+        return result;
     }
 }
