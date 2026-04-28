@@ -142,52 +142,48 @@ public class FileDecrypt extends AbstractFileCrypt implements RunnableTask<FileD
         if (salt.length != 16) {
             throw new IllegalArgumentException("Input file is truncated: expected 16-byte salt.");
         }
+        var params = readKdfParams(algorithmId, raw);
+        var keyMaterial = deriveKeyAndIv(passChars, salt, params.algorithm(), params.iterations(), params.memoryKb(), params.parallelism());
+        decrypt(keyMaterial, params.algorithm(), raw, tempFile);
+    }
 
-        KeyDerivation algorithm;
-        int iterations;
-        int memoryKb;
-        int parallelism;
-
-        switch (algorithmId) {
+    private static KdfParams readKdfParams(byte algorithmId, InputStream raw) throws java.io.IOException {
+        return switch (algorithmId) {
             case ALG_PBKDF2_SHA512 -> {
-                algorithm = KeyDerivation.PBKDF2_SHA512;
-                iterations = readInt(raw);
-                memoryKb = 0;
-                parallelism = 0;
+                var iterations = readInt(raw);
                 if (iterations < 1000 || iterations > 10_000_000)
                     throw new IllegalArgumentException("KESTRAENC: PBKDF2 iterations out of range: " + iterations);
+                yield new KdfParams(KeyDerivation.PBKDF2_SHA512, iterations, 0, 0);
             }
             case ALG_ARGON2ID -> {
-                algorithm = KeyDerivation.ARGON2ID;
-                iterations = readInt(raw);
-                memoryKb = readInt(raw);
-                parallelism = readShort(raw);
+                var iterations = readInt(raw);
+                var memoryKb = readInt(raw);
+                var parallelism = readShort(raw);
                 if (iterations < 1 || iterations > 10_000_000)
                     throw new IllegalArgumentException("KESTRAENC: Argon2id iterations out of range: " + iterations);
                 if (memoryKb < 8 || memoryKb > 1_048_576)
                     throw new IllegalArgumentException("KESTRAENC: Argon2id memory out of range: " + memoryKb);
                 if (parallelism < 1 || parallelism > 64)
                     throw new IllegalArgumentException("KESTRAENC: Argon2id parallelism out of range: " + parallelism);
+                yield new KdfParams(KeyDerivation.ARGON2ID, iterations, memoryKb, parallelism);
             }
             case ALG_SCRYPT -> {
-                algorithm = KeyDerivation.SCRYPT;
-                memoryKb = readInt(raw);
+                var memoryKb = readInt(raw);
                 raw.read(); // SCRYPT_R byte (fixed at 8, not stored)
-                parallelism = raw.read();
-                iterations = 0;
+                var parallelism = raw.read();
                 if (memoryKb < 2 || memoryKb > 1_048_576)
                     throw new IllegalArgumentException("KESTRAENC: scrypt N out of range: " + memoryKb);
                 if (parallelism < 1 || parallelism > 255)
                     throw new IllegalArgumentException("KESTRAENC: scrypt p out of range: " + parallelism);
+                yield new KdfParams(KeyDerivation.SCRYPT, 0, memoryKb, parallelism);
             }
             default -> throw new IllegalArgumentException(
                 "Unknown KDF algorithm byte: 0x" + Integer.toHexString(algorithmId & 0xFF)
             );
-        }
-
-        var keyMaterial = deriveKeyAndIv(passChars, salt, algorithm, iterations, memoryKb, parallelism);
-        decrypt(keyMaterial, algorithm, raw, tempFile);
+        };
     }
+
+    private record KdfParams(KeyDerivation algorithm, int iterations, int memoryKb, int parallelism) {}
 
     private static void decrypt(byte[] keyMaterial, KeyDerivation algorithm, InputStream raw,
                                  Path tempFile) throws Exception {
