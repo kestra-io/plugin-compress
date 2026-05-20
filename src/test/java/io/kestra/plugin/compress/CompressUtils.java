@@ -27,6 +27,15 @@ class CompressUtils {
         );
     }
 
+    URI uploadToStorageBytes(byte[] content) throws Exception {
+        return storageInterface.put(
+            TenantService.MAIN_TENANT,
+            null,
+            new URI("/" + IdUtils.create()),
+            new ByteArrayInputStream(content)
+        );
+    }
+
     URI uploadToStorage(String resource) throws Exception {
         File applicationFile = new File(
             Objects.requireNonNull(
