@@ -53,7 +53,7 @@ abstract class AbstractFileCrypt extends Task {
     static final int    GCM_NONCE_LEN    = 12;
     static final int    OPENSSL_SALT_LEN = 8;
     static final int    KESTRAENC_SALT_LEN = 16;
-    static final int    MIN_PBKDF2_ITERATIONS = 10000;
+    static final int    MIN_PBKDF2_ITERATIONS = 100_000;
 
     @Schema(title = "Source file URI")
     @NotNull
@@ -67,11 +67,12 @@ abstract class AbstractFileCrypt extends Task {
     protected Property<String> password;
 
     @Schema(
-        title = "Iteration count",
+        title = "PBKDF2 iteration count",
         description = """
-            PBKDF2: number of hashing rounds (min 10000, default 600000).
-            Argon2id: time cost. Scrypt: ignored.
-            Ignored when decrypting KESTRAENC files."""
+            PBKDF2 number of hashing rounds (min 100000, default 600000).
+            Used only by PBKDF2_SHA256 and PBKDF2_SHA512.
+            Ignored for Argon2id (use argon2TimeCost), Scrypt (uses memory only),
+            and when decrypting KESTRAENC files (read from the file header)."""
     )
     @Builder.Default
     @PluginProperty(group = "advanced")

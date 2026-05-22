@@ -48,7 +48,7 @@ class FileEncryptTest {
             .type(FileEncrypt.class.getName())
             .from(Property.ofValue(source.toString()))
             .password(Property.ofValue("correct-horse-battery-staple"))
-            .iterations(Property.ofValue(10000))
+            .iterations(Property.ofValue(100_000))
             .build();
 
         FileEncrypt.Output encOut = encrypt.run(TestsUtils.mockRunContext(runContextFactory, encrypt, Map.of()));
@@ -63,7 +63,7 @@ class FileEncryptTest {
             .type(FileDecrypt.class.getName())
             .from(Property.ofValue(encOut.getUri().toString()))
             .password(Property.ofValue("correct-horse-battery-staple"))
-            .iterations(Property.ofValue(10000))
+            .iterations(Property.ofValue(100_000))
             .build();
 
         FileDecrypt.Output decOut = decrypt.run(TestsUtils.mockRunContext(runContextFactory, decrypt, Map.of()));
@@ -87,7 +87,7 @@ class FileEncryptTest {
                 .type(FileEncrypt.class.getName())
                 .from(Property.ofValue(source.toString()))
                 .password(Property.ofValue("block-boundary-test"))
-                .iterations(Property.ofValue(10000))
+                .iterations(Property.ofValue(100_000))
                 .build();
 
             FileEncrypt.Output encOut = encrypt.run(TestsUtils.mockRunContext(runContextFactory, encrypt, Map.of()));
@@ -97,7 +97,7 @@ class FileEncryptTest {
                 .type(FileDecrypt.class.getName())
                 .from(Property.ofValue(encOut.getUri().toString()))
                 .password(Property.ofValue("block-boundary-test"))
-                .iterations(Property.ofValue(10000))
+                .iterations(Property.ofValue(100_000))
                 .build();
 
             FileDecrypt.Output decOut = decrypt.run(TestsUtils.mockRunContext(runContextFactory, decrypt, Map.of()));
@@ -120,7 +120,7 @@ class FileEncryptTest {
             .type(FileEncrypt.class.getName())
             .from(Property.ofValue(source.toString()))
             .password(Property.ofValue("correct-password"))
-            .iterations(Property.ofValue(10000))
+            .iterations(Property.ofValue(100_000))
             .build();
 
         FileEncrypt.Output encOut = encrypt.run(TestsUtils.mockRunContext(runContextFactory, encrypt, Map.of()));
@@ -130,7 +130,7 @@ class FileEncryptTest {
             .type(FileDecrypt.class.getName())
             .from(Property.ofValue(encOut.getUri().toString()))
             .password(Property.ofValue("wrong-password"))
-            .iterations(Property.ofValue(10000))
+            .iterations(Property.ofValue(100_000))
             .build();
 
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
@@ -148,7 +148,7 @@ class FileEncryptTest {
             .type(FileEncrypt.class.getName())
             .from(Property.ofValue(source.toString()))
             .password(Property.ofValue("empty-file-test"))
-            .iterations(Property.ofValue(10000))
+            .iterations(Property.ofValue(100_000))
             .build();
 
         FileEncrypt.Output encOut = encrypt.run(TestsUtils.mockRunContext(runContextFactory, encrypt, Map.of()));
@@ -158,7 +158,7 @@ class FileEncryptTest {
             .type(FileDecrypt.class.getName())
             .from(Property.ofValue(encOut.getUri().toString()))
             .password(Property.ofValue("empty-file-test"))
-            .iterations(Property.ofValue(10000))
+            .iterations(Property.ofValue(100_000))
             .build();
 
         FileDecrypt.Output decOut = decrypt.run(TestsUtils.mockRunContext(runContextFactory, decrypt, Map.of()));
@@ -180,7 +180,7 @@ class FileEncryptTest {
             .type(FileDecrypt.class.getName())
             .from(Property.ofValue(plaintext.toString()))
             .password(Property.ofValue("any-password"))
-            .iterations(Property.ofValue(10000))
+            .iterations(Property.ofValue(100_000))
             .build();
 
         IllegalArgumentException ex = assertThrows(
@@ -200,7 +200,7 @@ class FileEncryptTest {
             .type(FileDecrypt.class.getName())
             .from(Property.ofValue(truncated.toString()))
             .password(Property.ofValue("any-password"))
-            .iterations(Property.ofValue(10000))
+            .iterations(Property.ofValue(100_000))
             .build();
 
         IllegalArgumentException ex = assertThrows(
@@ -238,9 +238,9 @@ class FileEncryptTest {
     void lowIterationsThrows() {
         IllegalArgumentException ex = assertThrows(
             IllegalArgumentException.class,
-            () -> AbstractFileCrypt.deriveKeyAndIvOpenssl("pass".toCharArray(), new byte[8], 9999)
+            () -> AbstractFileCrypt.deriveKeyAndIvOpenssl("pass".toCharArray(), new byte[8], 99_999)
         );
-        assertThat(ex.getMessage().contains("10000"), is(true));
+        assertThat(ex.getMessage().contains("100000"), is(true));
     }
 
     @Test
@@ -251,7 +251,7 @@ class FileEncryptTest {
             .from(Property.ofValue(source.toString()))
             .password(Property.ofValue("test-password"))
             .keyDerivation(Property.ofValue(KeyDerivation.PBKDF2_SHA512))
-            .iterations(Property.ofValue(10000))
+            .iterations(Property.ofValue(100_000))
             .build();
         var encOut = encrypt.run(TestsUtils.mockRunContext(runContextFactory, encrypt, Map.of()));
 
@@ -275,7 +275,7 @@ class FileEncryptTest {
             .from(Property.ofValue(source.toString()))
             .password(Property.ofValue("test-password"))
             .keyDerivation(Property.ofValue(KeyDerivation.ARGON2ID))
-            .iterations(Property.ofValue(1))
+            .argon2TimeCost(Property.ofValue(1))
             .memory(Property.ofValue(8192))
             .parallelism(Property.ofValue(1))
             .build();
@@ -323,7 +323,7 @@ class FileEncryptTest {
         assumeTrue(opensslAvailable(), "openssl binary not on PATH");
         String content = "kestra <-> openssl cross-compat test";
         String password = "shared-secret-123";
-        int iterations = 10000;
+        int iterations = 100_000;
         URI source = compressUtils.uploadToStorageString(content);
 
         FileEncrypt encrypt = FileEncrypt.builder()
@@ -362,7 +362,7 @@ class FileEncryptTest {
         assumeTrue(opensslAvailable(), "openssl binary not on PATH");
         String content = "openssl -> kestra cross-compat test";
         String password = "shared-secret-456";
-        int iterations = 10000;
+        int iterations = 100_000;
 
         Path plaintextFile = Files.createTempFile("kestra-plain-", ".txt");
         Path encryptedFile = Files.createTempFile("kestra-osslenc-", ".bin");
@@ -417,7 +417,7 @@ class FileEncryptTest {
             .from(Property.ofValue(source.toString()))
             .password(Property.ofValue("correct"))
             .keyDerivation(Property.ofValue(KeyDerivation.ARGON2ID))
-            .iterations(Property.ofValue(1))
+            .argon2TimeCost(Property.ofValue(1))
             .memory(Property.ofValue(8192))
             .parallelism(Property.ofValue(1))
             .build();
@@ -443,7 +443,7 @@ class FileEncryptTest {
             .from(Property.ofValue(source.toString()))
             .password(Property.ofValue("correct"))
             .keyDerivation(Property.ofValue(KeyDerivation.PBKDF2_SHA512))
-            .iterations(Property.ofValue(10000))
+            .iterations(Property.ofValue(100_000))
             .build();
         var encOut = encrypt.run(TestsUtils.mockRunContext(runContextFactory, encrypt, Map.of()));
 
@@ -486,12 +486,12 @@ class FileEncryptTest {
 
     @Test
     void tamperedGcmCiphertextFails() throws Exception {
-        assertTamperFails(KeyDerivation.ARGON2ID, b -> b.iterations(Property.ofValue(1)).memory(Property.ofValue(8192)).parallelism(Property.ofValue(1)));
+        assertTamperFails(KeyDerivation.ARGON2ID, b -> b.argon2TimeCost(Property.ofValue(1)).memory(Property.ofValue(8192)).parallelism(Property.ofValue(1)));
     }
 
     @Test
     void tamperedPbkdf2Sha512CiphertextFails() throws Exception {
-        assertTamperFails(KeyDerivation.PBKDF2_SHA512, b -> b.iterations(Property.ofValue(10000)));
+        assertTamperFails(KeyDerivation.PBKDF2_SHA512, b -> b.iterations(Property.ofValue(100_000)));
     }
 
     @Test

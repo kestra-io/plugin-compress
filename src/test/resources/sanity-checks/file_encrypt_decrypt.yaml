@@ -10,13 +10,13 @@ tasks:
     type: io.kestra.plugin.compress.FileEncrypt
     from: "{{ outputs.download.uri }}"
     password: "test-password"
-    iterations: 10000
+    iterations: 100000
 
   - id: decrypt
     type: io.kestra.plugin.compress.FileDecrypt
     from: "{{ outputs.encrypt.uri }}"
     password: "test-password"
-    iterations: 10000
+    iterations: 100000
 
   - id: decompress
     type: io.kestra.plugin.compress.ArchiveDecompress
@@ -32,7 +32,7 @@ tasks:
     from: "{{ outputs.download.uri }}"
     password: "test-password"
     keyDerivation: ARGON2ID
-    iterations: 1
+    argon2TimeCost: 1
     memory: 8192
     parallelism: 1
 

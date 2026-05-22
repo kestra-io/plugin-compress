@@ -17,7 +17,9 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.IllegalBlockSizeException;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -102,11 +104,12 @@ public class FileDecrypt extends AbstractFileCrypt implements RunnableTask<FileD
         var salt = raw.readNBytes(OPENSSL_SALT_LEN);
         if (salt.length != OPENSSL_SALT_LEN)
             throw new IllegalArgumentException("Input file is truncated: expected " + OPENSSL_SALT_LEN + "-byte salt after 'Salted__' header.");
-        decrypt(new CipherInit(deriveKeyAndIvOpenssl(passChars, salt, iterations), null), raw, tempFile);
+        decrypt(new CipherInit(deriveKeyAndIvOpenssl(passChars, salt, iterations), null), raw, tempFile, null);
     }
 
     private static void decryptKestraFormat(InputStream raw, char[] passChars, Path tempFile) throws Exception {
-        var dis = new DataInputStream(raw);
+        var capturing = new CapturingInputStream(raw);
+        var dis = new DataInputStream(capturing);
         var version = dis.read();
         if (version != KESTRAENC_VERSION) {
             throw new IllegalArgumentException("Unsupported KESTRAENC format version: " + version);
@@ -120,13 +123,12 @@ public class FileDecrypt extends AbstractFileCrypt implements RunnableTask<FileD
         if (nonce.length != GCM_NONCE_LEN) {
             throw new IllegalArgumentException("Input file is truncated: expected " + GCM_NONCE_LEN + "-byte GCM nonce.");
         }
-        switch (algorithmId) {
+        KdfParams params = switch (algorithmId) {
             case ALG_PBKDF2_SHA512 -> {
                 var iterations = dis.readInt();
                 if (iterations < MIN_PBKDF2_ITERATIONS || iterations > 10_000_000)
                     throw new IllegalArgumentException("KESTRAENC: PBKDF2 iterations out of range [" + MIN_PBKDF2_ITERATIONS + ", 10000000]: " + iterations);
-                var params = KdfParams.pbkdf2(KeyDerivation.PBKDF2_SHA512, iterations);
-                decrypt(new CipherInit(deriveKey(passChars, salt, params), nonce), dis, tempFile);
+                yield KdfParams.pbkdf2(KeyDerivation.PBKDF2_SHA512, iterations);
             }
             case ALG_ARGON2ID -> {
                 var iterations = dis.readInt();
@@ -138,8 +140,7 @@ public class FileDecrypt extends AbstractFileCrypt implements RunnableTask<FileD
                     throw new IllegalArgumentException("KESTRAENC: Argon2id memory out of range: " + memoryKb);
                 if (parallelism < 1 || parallelism > 64)
                     throw new IllegalArgumentException("KESTRAENC: Argon2id parallelism out of range: " + parallelism);
-                var params = KdfParams.argon2id(iterations, memoryKb, parallelism);
-                decrypt(new CipherInit(deriveKey(passChars, salt, params), nonce), dis, tempFile);
+                yield KdfParams.argon2id(iterations, memoryKb, parallelism);
             }
             case ALG_SCRYPT -> {
                 var memoryKb = dis.readInt();
@@ -152,20 +153,50 @@ public class FileDecrypt extends AbstractFileCrypt implements RunnableTask<FileD
                     throw new IllegalArgumentException("KESTRAENC: scrypt N must be a power of 2 in [2, 1048576], got " + memoryKb);
                 if (parallelism < 1 || parallelism > 255)
                     throw new IllegalArgumentException("KESTRAENC: scrypt p out of range: " + parallelism);
-                var params = KdfParams.scrypt(memoryKb, parallelism);
-                decrypt(new CipherInit(deriveKey(passChars, salt, params), nonce), dis, tempFile);
+                yield KdfParams.scrypt(memoryKb, parallelism);
             }
             default -> throw new IllegalArgumentException("Unknown KDF algorithm byte: 0x" + Integer.toHexString(algorithmId & 0xFF));
+        };
+
+        var aad = capturing.captured(KESTRAENC_MAGIC);
+        decrypt(new CipherInit(deriveKey(passChars, salt, params), nonce), dis, tempFile, aad);
+    }
+
+    private static final class CapturingInputStream extends FilterInputStream {
+        private final ByteArrayOutputStream buf = new ByteArrayOutputStream();
+        CapturingInputStream(InputStream in) { super(in); }
+
+        @Override public int read() throws IOException {
+            var b = super.read();
+            if (b != -1) buf.write(b);
+            return b;
+        }
+
+        @Override public int read(byte[] bytes, int off, int len) throws IOException {
+            var n = super.read(bytes, off, len);
+            if (n > 0) buf.write(bytes, off, n);
+            return n;
+        }
+
+        byte[] captured(byte[] prefix) {
+            var captured = buf.toByteArray();
+            var out = new byte[prefix.length + captured.length];
+            System.arraycopy(prefix, 0, out, 0, prefix.length);
+            System.arraycopy(captured, 0, out, prefix.length, captured.length);
+            return out;
         }
     }
 
-    private static void decrypt(CipherInit init, InputStream raw, Path tempFile) throws Exception {
+    private static void decrypt(CipherInit init, InputStream raw, Path tempFile, byte[] aad) throws Exception {
         final var keyMaterial = init.keyMaterial();
         final Cipher cipher;
         try {
             cipher = newCipher(Cipher.DECRYPT_MODE, keyMaterial, init.gcmNonce());
         } finally {
             Arrays.fill(keyMaterial, (byte) 0);
+        }
+        if (aad != null) {
+            cipher.updateAAD(aad);
         }
         try (
             var out = Files.newOutputStream(tempFile);

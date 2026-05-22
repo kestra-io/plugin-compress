@@ -17,6 +17,7 @@ import lombok.experimental.SuperBuilder;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -71,7 +72,7 @@ import java.util.Arrays;
                     from: "{{ inputs.file }}"
                     password: "{{ secret('ENCRYPTION_PASSWORD') }}"
                     keyDerivation: ARGON2ID
-                    iterations: 1
+                    argon2TimeCost: 3
                     memory: 65536
                     parallelism: 1
                 """
@@ -129,15 +130,28 @@ public class FileEncrypt extends AbstractFileCrypt implements RunnableTask<FileE
     @PluginProperty(group = "advanced")
     protected Property<Integer> parallelism = Property.ofValue(1);
 
+    @Schema(
+        title = "Argon2id time cost",
+        description = """
+            Number of passes over the memory buffer for Argon2id.
+            RFC 9106 recommends 2-4. Default 3.
+            Used only when keyDerivation is ARGON2ID; ignored otherwise."""
+    )
+    @Builder.Default
+    @PluginProperty(group = "advanced")
+    protected Property<Integer> argon2TimeCost = Property.ofValue(3);
+
     @Override
     public Output run(RunContext runContext) throws Exception {
         final var rFrom = runContext.render(this.from).as(String.class).orElseThrow();
         final var rIterations = runContext.render(this.iterations).as(Integer.class).orElseThrow();
         final var rMemory = runContext.render(this.memory).as(Integer.class).orElseThrow();
         final var rParallelism = runContext.render(this.parallelism).as(Integer.class).orElseThrow();
+        final var rArgon2TimeCost = runContext.render(this.argon2TimeCost).as(Integer.class).orElseThrow();
         final var rKeyDerivation = runContext.render(this.keyDerivation).as(KeyDerivation.class).orElseThrow();
 
-        final var kdfParams = new KdfParams(rKeyDerivation, rIterations, rMemory, rParallelism);
+        final int kdfIterations = rKeyDerivation == KeyDerivation.ARGON2ID ? rArgon2TimeCost : rIterations;
+        final var kdfParams = new KdfParams(rKeyDerivation, kdfIterations, rMemory, rParallelism);
         final boolean opensslFormat = rKeyDerivation == KeyDerivation.PBKDF2_SHA256;
         validateKdfParams(kdfParams);
         runContext.logger().info("Encrypting with {} ({})", rKeyDerivation, opensslFormat ? "AES-CBC" : "AES-GCM");
@@ -167,7 +181,10 @@ public class FileEncrypt extends AbstractFileCrypt implements RunnableTask<FileE
                 out.write(SALTED_MAGIC);
                 out.write(salt);
             } else {
-                writeKestraHeader(out, kdfParams, salt, gcmNonce);
+                var headerBytes = buildKestraHeader(kdfParams, salt, gcmNonce);
+                out.write(headerBytes);
+                // Bind the header to the GCM tag so any header tamper invalidates decryption.
+                cipher.updateAAD(headerBytes);
             }
             try (
                 var in = runContext.storage().getFile(URI.create(rFrom));
@@ -186,6 +203,12 @@ public class FileEncrypt extends AbstractFileCrypt implements RunnableTask<FileE
         var bytes = new byte[length];
         SECURE_RANDOM.nextBytes(bytes);
         return bytes;
+    }
+
+    private static byte[] buildKestraHeader(KdfParams params, byte[] salt, byte[] gcmNonce) throws IOException {
+        var buf = new ByteArrayOutputStream();
+        writeKestraHeader(new DataOutputStream(buf), params, salt, gcmNonce);
+        return buf.toByteArray();
     }
 
     private static void writeKestraHeader(DataOutputStream out, KdfParams params, byte[] salt, byte[] gcmNonce) throws IOException {
