@@ -1,0 +1,51 @@
+id: file_encrypt_decrypt
+namespace: sanitychecks.plugin-compress
+
+tasks:
+  - id: download
+    type: io.kestra.plugin.core.http.Download
+    uri: https://sample-files.com/downloads/compressed/zip/basic-text.zip
+
+  - id: encrypt
+    type: io.kestra.plugin.compress.FileEncrypt
+    from: "{{ outputs.download.uri }}"
+    password: "test-password"
+    iterations: 100000
+
+  - id: decrypt
+    type: io.kestra.plugin.compress.FileDecrypt
+    from: "{{ outputs.encrypt.uri }}"
+    password: "test-password"
+    iterations: 100000
+
+  - id: decompress
+    type: io.kestra.plugin.compress.ArchiveDecompress
+    from: "{{ outputs.decrypt.uri }}"
+    algorithm: ZIP
+
+  - id: assert_round_trip
+    type: io.kestra.plugin.core.execution.Fail
+    condition: "{{ outputs.decompress.files | length != 6 }}"
+
+  - id: encrypt_argon2id
+    type: io.kestra.plugin.compress.FileEncrypt
+    from: "{{ outputs.download.uri }}"
+    password: "test-password"
+    keyDerivation: ARGON2ID
+    argon2TimeCost: 1
+    memory: 8192
+    parallelism: 1
+
+  - id: decrypt_argon2id
+    type: io.kestra.plugin.compress.FileDecrypt
+    from: "{{ outputs.encrypt_argon2id.uri }}"
+    password: "test-password"
+
+  - id: decompress_argon2id
+    type: io.kestra.plugin.compress.ArchiveDecompress
+    from: "{{ outputs.decrypt_argon2id.uri }}"
+    algorithm: ZIP
+
+  - id: assert_argon2id
+    type: io.kestra.plugin.core.execution.Fail
+    condition: "{{ outputs.decompress_argon2id.files | length != 6 }}"
