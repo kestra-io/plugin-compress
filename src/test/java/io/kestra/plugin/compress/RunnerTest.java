@@ -19,4 +19,11 @@ class RunnerTest {
         assertThat(execution.getTaskRunList(), hasSize(6));
         assertThat(execution.getState().getCurrent(), is(State.Type.SUCCESS));
     }
+
+    @Test
+    @ExecuteFlow("sanity-checks/file_encrypt_decrypt.yaml")
+    void fileEncryptDecrypt(Execution execution) {
+        assertThat(execution.getTaskRunList(), hasSize(9));
+        assertThat(execution.getState().getCurrent(), is(State.Type.SUCCESS));
+    }
 }
