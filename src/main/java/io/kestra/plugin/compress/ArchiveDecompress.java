@@ -115,6 +115,12 @@ public class ArchiveDecompress extends AbstractArchive implements RunnableTask<A
 
             if (!entry.isDirectory()) {
                 String sanitizedName = entry.getName().replaceAll(" ", "_");
+                // CWE-22: Prevent path traversal by verifying the resolved path stays within the working directory
+                Path workingDirPath = runContext.workingDir().path();
+                Path resolved = workingDirPath.resolve(sanitizedName).normalize();
+                if (!resolved.startsWith(workingDirPath)) {
+                    throw new IOException("Path traversal attempt detected in archive entry: " + entry.getName());
+                }
                 Path path = runContext.workingDir().createFile(sanitizedName);
 
                 try (OutputStream o = Files.newOutputStream(path)) {
