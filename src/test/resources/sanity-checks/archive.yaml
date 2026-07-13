@@ -2,29 +2,36 @@ id: archive
 namespace: sanitychecks.plugin-compress
 
 tasks:
-  - id: download
-    type: io.kestra.plugin.core.http.Download
-    uri: https://sample-files.com/downloads/compressed/zip/basic-text.zip
+  - id: write_readme
+    type: io.kestra.plugin.core.storage.Write
+    content: "This is a sample file for the compress plugin sanity check."
+    extension: .txt
+
+  - id: compress
+    type: io.kestra.plugin.compress.ArchiveCompress
+    from:
+      readme.txt: "{{ outputs.write_readme.uri }}"
+    algorithm: ZIP
 
   - id: decompress
     type: io.kestra.plugin.compress.ArchiveDecompress
-    from: "{{ outputs.download.uri }}"
+    from: "{{ outputs.compress.uri }}"
     algorithm: ZIP
 
   - id: assertFiles
     type: io.kestra.plugin.core.execution.Fail
-    condition: "{{ outputs.decompress.files | length != 6}}"
+    condition: "{{ outputs.decompress.files | length != 1 }}"
 
-  - id: compress
+  - id: compressJar
     type: io.kestra.plugin.compress.ArchiveCompress
     from: "{{ outputs.decompress.files }}"
     algorithm: JAR
 
   - id: decompress2
     type: io.kestra.plugin.compress.ArchiveDecompress
-    from: "{{ outputs.compress.uri }}"
+    from: "{{ outputs.compressJar.uri }}"
     algorithm: JAR
 
   - id: assertContent
     type: io.kestra.plugin.core.execution.Fail
-    condition: '{{ read(outputs.decompress2.files["readme.txt"]) != "This sample ZIP file is provided by Sample-Files.com. Visit us for more sample files and resources."}}'
+    condition: '{{ read(outputs.decompress2.files["readme.txt"]) != "This is a sample file for the compress plugin sanity check." }}'
