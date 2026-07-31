@@ -133,10 +133,21 @@ class FileEncryptTest {
             .iterations(Property.ofValue(100_000))
             .build();
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-            decrypt.run(TestsUtils.mockRunContext(runContextFactory, decrypt, Map.of()))
-        );
-        assertThat(ex.getMessage().contains("Decryption failed"), is(true));
+        // The OpenSSL-compatible default is AES-CBC, which has no authentication tag: a wrong
+        // password is only detected when PKCS#7 unpadding fails, and random bytes pass that
+        // check about 1 time in 255. Either way the plaintext must not be recoverable.
+        try {
+            FileDecrypt.Output decOut = decrypt.run(TestsUtils.mockRunContext(runContextFactory, decrypt, Map.of()));
+
+            assertThat(
+                CharStreams.toString(new InputStreamReader(
+                    storageInterface.get(TenantService.MAIN_TENANT, null, decOut.getUri())
+                )),
+                not(is("secret data"))
+            );
+        } catch (IllegalStateException ex) {
+            assertThat(ex.getMessage().contains("Decryption failed"), is(true));
+        }
     }
 
     @Test
