@@ -1,4 +1,5 @@
 @PluginSubGroup(
+    title = "Compression",
     description = "This sub-group of plugins contains tasks for compressing, decompressing, encrypting, and decrypting files.",
     categories = {
         PluginSubGroup.PluginCategory.CORE
