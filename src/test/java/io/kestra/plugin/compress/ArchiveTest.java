@@ -15,6 +15,7 @@ import com.google.common.io.CharStreams;
 
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
+import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
@@ -24,7 +25,9 @@ import jakarta.inject.Inject;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @KestraTest
 class ArchiveTest {
@@ -49,7 +52,10 @@ class ArchiveTest {
             Arguments.of(ArchiveDecompress.ArchiveAlgorithm.TAR, ArchiveDecompress.CompressionAlgorithm.SNAPPYFRAME),
             Arguments.of(ArchiveDecompress.ArchiveAlgorithm.TAR, ArchiveDecompress.CompressionAlgorithm.XZ),
             Arguments.of(ArchiveDecompress.ArchiveAlgorithm.TAR, ArchiveDecompress.CompressionAlgorithm.ZSTD),
-            Arguments.of(ArchiveDecompress.ArchiveAlgorithm.ZIP, null)
+            Arguments.of(ArchiveDecompress.ArchiveAlgorithm.ZIP, null),
+            // a JAR is a ZIP under the hood, the format detection must not reject it
+            Arguments.of(ArchiveDecompress.ArchiveAlgorithm.JAR, null),
+            Arguments.of(ArchiveDecompress.ArchiveAlgorithm.CPIO, null)
         );
     }
 
@@ -123,4 +129,49 @@ class ArchiveTest {
         );
     }
 
+    // https://github.com/kestra-io/plugin-compress/issues/198
+    @ParameterizedTest
+    @MethodSource("wrongAlgorithmSource")
+    void wrongAlgorithmFails(
+        ArchiveDecompress.ArchiveAlgorithm compressAlgorithm,
+        ArchiveDecompress.CompressionAlgorithm compression,
+        ArchiveDecompress.ArchiveAlgorithm decompressAlgorithm
+    ) throws Exception {
+        URI f1 = compressUtils.uploadToStorageString("alpha-payload");
+
+        ArchiveCompress compress = ArchiveCompress.builder()
+            .id("unit-test")
+            .type(ArchiveCompress.class.getName())
+            .algorithm(Property.ofValue(compressAlgorithm))
+            .compression(compression == null ? null : Property.ofValue(compression))
+            .from(Map.of("a.txt", f1.toString()))
+            .build();
+
+        ArchiveCompress.Output runCompress = compress.run(TestsUtils.mockRunContext(runContextFactory, compress, Map.of()));
+
+        ArchiveDecompress decompress = ArchiveDecompress.builder()
+            .id("unit-test")
+            .type(ArchiveDecompress.class.getName())
+            .algorithm(Property.ofValue(decompressAlgorithm))
+            .compression(compression == null ? null : Property.ofValue(compression))
+            .from(Property.ofValue(runCompress.getUri().toString()))
+            .build();
+
+        RunContext runContext = TestsUtils.mockRunContext(runContextFactory, decompress, Map.of());
+
+        Exception exception = assertThrows(Exception.class, () -> decompress.run(runContext));
+        assertThat(exception.getMessage(), containsString("not in the '" + decompressAlgorithm + "' format"));
+        assertThat(exception.getMessage(), containsString(compressAlgorithm.toString()));
+    }
+
+    static Stream<Arguments> wrongAlgorithmSource() {
+        return Stream.of(
+            // the TAR reader used to silently return no entry at all
+            Arguments.of(ArchiveDecompress.ArchiveAlgorithm.ZIP, null, ArchiveDecompress.ArchiveAlgorithm.TAR),
+            Arguments.of(ArchiveDecompress.ArchiveAlgorithm.CPIO, null, ArchiveDecompress.ArchiveAlgorithm.TAR),
+            // through a compressor stream
+            Arguments.of(ArchiveDecompress.ArchiveAlgorithm.ZIP, ArchiveDecompress.CompressionAlgorithm.GZIP, ArchiveDecompress.ArchiveAlgorithm.TAR),
+            Arguments.of(ArchiveDecompress.ArchiveAlgorithm.TAR, ArchiveDecompress.CompressionAlgorithm.GZIP, ArchiveDecompress.ArchiveAlgorithm.ZIP)
+        );
+    }
 }
