@@ -104,6 +104,11 @@ public class FileEncrypt extends AbstractFileCrypt implements RunnableTask<FileE
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
+    @Override
+    protected boolean canEqual(final Object other) {
+        return other instanceof FileEncrypt;
+    }
+
     @Schema(
         title = "Key derivation function",
         description = """
