@@ -1,5 +1,5 @@
-# CodeQL advanced setup. The analysis itself, and the shared paths-ignore configuration, live in
-# kestra-io/actions so every plugin repository scans the same way; only the triggers are local.
+# CodeQL advanced setup. The analysis lives in kestra-io/actions so every plugin repository scans
+# the same way; only the triggers are local.
 #
 # See kestra-io/actions/.github/workflows/plugins-codeql.yml for why Java is built rather than
 # extracted buildless.
@@ -26,11 +26,6 @@ permissions:
   actions: read
 
 jobs:
+  # java-version is left at the shared default of 21, which is targetJavaVersion in build.gradle.
   codeql:
     uses: kestra-io/actions/.github/workflows/plugins-codeql.yml@test/github-coverage-e2e
-    with:
-      # Matches targetJavaVersion in build.gradle.
-      java-version: '21'
-      # Test-only: pin the shared config to the same branch as the workflow. Drop this once the
-      # branch merges, so the default (…@main) applies.
-      codeql-config: 'kestra-io/actions/.github/codeql/codeql-config.yml@test/github-coverage-e2e'
