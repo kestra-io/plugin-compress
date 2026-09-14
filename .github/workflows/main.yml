@@ -39,10 +39,11 @@ permissions:
   actions: read
   pull-requests: write
   packages: read
+  code-quality: write
 
 jobs:
   check:
-    uses: kestra-io/actions/.github/workflows/plugins.yml@main
+    uses: kestra-io/actions/.github/workflows/plugins.yml@test/github-coverage-e2e
     with:
       skip-test: ${{ github.event.inputs.skip-test == 'true' }}
       kestra-version: ${{ github.event.inputs.kestra-version }}
