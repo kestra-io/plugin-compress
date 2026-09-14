@@ -1,0 +1,31 @@
+# CodeQL advanced setup. The analysis lives in kestra-io/actions so every plugin repository scans
+# the same way; only the triggers are local.
+#
+# See kestra-io/actions/.github/workflows/plugins-codeql.yml for why Java is built rather than
+# extracted buildless.
+name: "CodeQL"
+
+on:
+  push:
+    branches:
+      - main
+      - 'test/**'
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # Weekly, matching the cadence default setup used.
+    - cron: '0 5 * * 1'
+  workflow_dispatch: {}
+
+# Reusable workflow permissions can only be maintained or reduced, never elevated, so
+# security-events: write has to be granted here for the nested job to start.
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  # java-version is left at the shared default of 21, which is targetJavaVersion in build.gradle.
+  codeql:
+    uses: kestra-io/actions/.github/workflows/plugins-codeql.yml@test/github-coverage-e2e
