@@ -56,6 +56,8 @@ jobs:
           # Wider than the 'default' suite default setup used. Use 'security-and-quality'
           # instead to also pull in the maintainability queries.
           queries: security-extended
+          # paths-ignore for the buildless 'actions' job; a no-op for built Java.
+          config-file: ./.github/codeql/codeql-config.yml
 
       # Java only: build so CodeQL traces compilation and records the resolved classpath.
       - name: Set up JDK
@@ -70,11 +72,12 @@ jobs:
         if: matrix.build-mode == 'manual'
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
-      # testClasses, not classes: src/test is where the crypto round-trip coverage lives, and
-      # compiling it puts those files in the database too.
+      # classes, not testClasses: with build-mode 'manual' the traced build IS the path filter,
+      # so compiling main sources only is what keeps src/test/java out of the database.
+      # paths-ignore cannot do this for a built language.
       - name: Build with Gradle
         if: matrix.build-mode == 'manual'
-        run: ./gradlew testClasses --no-daemon --console=plain
+        run: ./gradlew classes --no-daemon --console=plain
         env:
           JAVA_OPTS: "-Xmx2g -XX:MaxMetaspaceSize=1g"
 
