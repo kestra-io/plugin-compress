@@ -1,0 +1,77 @@
+# OpenGrep static analysis, wired against kestra-io/actions#261 to exercise the feature end to end
+# on a real plugin repository.
+#
+# The steps are the ones composite/scan-opengrep bundles, inlined here on purpose: that composite
+# pins its nested `uses:` to @main, so calling it from the feature branch would still resolve the
+# scanner from main, where it does not exist yet. Once the pull request merges this file collapses
+# to a single `uses: kestra-io/actions/composite/scan-opengrep@main` step inside plugins.yml.
+name: OpenGrep
+
+on:
+  push:
+    branches:
+      - main
+      - 'test/**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  # Annotations are published as a check run, and the findings table as a pull request comment.
+  checks: write
+  pull-requests: write
+
+jobs:
+  opengrep:
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 so the merge base is present locally; a shallow checkout makes the action
+      # fall back to a full scan instead of the diff it is meant to test here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: OpenGrep - Scan
+        id: scan
+        uses: kestra-io/actions/actions/scan-opengrep@plan-opengrep-code-scanning
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: OpenGrep - Comment pull request
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: kestra-io/actions/actions/comment-update@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          title: "🔎 OpenGrep"
+          files: |
+            ${{ steps.scan.outputs.comment-file }}
+          template: |
+            {% if files[0] and files[0].total > 0 %}
+            Found **{{ files[0].total }}** finding(s).
+
+            | Severity | Rule | Location | Message |
+            | :--- | :--- | :--- | :--- |
+            {%- for finding in files[0].shown %}
+            | {{ finding.severity }} | `{{ finding.rule }}` | `{{ finding.location }}` | {{ finding.message }} |
+            {%- endfor %}
+            {% if files[0].overflow > 0 %}
+            _… and {{ files[0].overflow }} more, see the `opengrep-report` artifact._
+            {% endif %}
+            {% else %}
+            No findings.
+            {% endif %}
+
+      - name: OpenGrep - Upload report
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opengrep-report
+          path: |
+            ${{ steps.scan.outputs.json-file }}
+            ${{ steps.scan.outputs.sarif-file }}
+          if-no-files-found: warn
+          retention-days: 30

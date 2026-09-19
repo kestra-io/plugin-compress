@@ -1,0 +1,22 @@
+# OpenGrep configuration for this repository, read by kestra-io/actions/actions/scan-opengrep at
+# scan time. Every key overrides the matching action input, so the scan is configured here rather
+# than through arguments threaded into the shared plugins workflow.
+
+# p/java on top of the defaults: this is a Java plugin and the language pack is what makes the
+# scan more than a workflow linter.
+rulesets:
+  - p/default
+  - p/java
+
+# kestra-io/actions is published from this organisation and consumers are meant to track @main,
+# so the mutable-tag rule is silenced for that prefix only — third-party mutable tags still report.
+ignore-findings:
+  - rule: github-actions-mutable-action-tag
+    match: 'kestra-io/actions/'
+    reason: kestra-io publishes those actions; plugins track @main by design
+
+exclude-rules: []
+
+# Advisory: this run exists to measure what the scanner says about a plugin repository, not to
+# block it.
+fail-on-severity: none
