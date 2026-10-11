@@ -1,6 +1,7 @@
 package io.kestra.plugin.compress;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -14,10 +15,12 @@ import java.util.stream.Stream;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
@@ -94,6 +97,7 @@ class ArchiveCompressDirectoryTest {
 
         URI uri = runContext.storage().putFile(new ByteArrayInputStream("s".getBytes(StandardCharsets.UTF_8)), "storage-test/dir/with%20space.txt");
         runContext.storage().putFile(new ByteArrayInputStream("n".getBytes(StandardCharsets.UTF_8)), "storage-test/dir/sub/n.txt");
+        runContext.storage().putFile(new ByteArrayInputStream("d".getBytes(StandardCharsets.UTF_8)), "storage-test/dir/my%20sub/deeper%20dir/d.txt");
 
         // the directory URI is the parent of the file URI
         String directory = uri.toString().substring(0, uri.toString().lastIndexOf('/'));
@@ -101,8 +105,61 @@ class ArchiveCompressDirectoryTest {
 
         Map<String, String> files = read(task.run(runContext), ArchiveDecompress.ArchiveAlgorithm.TAR, null, runContext);
 
-        assertThat(files.keySet(), containsInAnyOrder("with space.txt", "sub/n.txt"));
+        assertThat(files.keySet(), containsInAnyOrder("with space.txt", "sub/n.txt", "my sub/deeper dir/d.txt"));
         assertThat(files.get("sub/n.txt"), is("n"));
+        assertThat(files.get("my sub/deeper dir/d.txt"), is("d"));
+    }
+
+    @Test
+    void internalStorageNamespaceLevelSkipsNamespaceMetadata() throws Exception {
+        ArchiveCompress probe = task(ArchiveDecompress.ArchiveAlgorithm.ZIP, null).fromDirectory(Property.ofValue("unused")).build();
+        RunContext runContext = TestsUtils.mockRunContext(runContextFactory, probe, Map.of());
+
+        String namespace = "kestra:///archive/test/" + IdUtils.create().toLowerCase();
+        put(runContext, namespace + "/_files/ns.txt", "namespace file");
+        put(runContext, namespace + "/_kv/key", "kv");
+        put(runContext, namespace + "/my-flow/executions/exec1/tasks/t/run/out.txt", "out");
+        put(runContext, namespace + "/my-flow/executions/exec1/tasks/t/run/_files/kept.txt", "kept");
+
+        ArchiveCompress task = task(ArchiveDecompress.ArchiveAlgorithm.ZIP, null).fromDirectory(Property.ofValue(namespace)).build();
+
+        Map<String, String> files = read(task.run(runContext), ArchiveDecompress.ArchiveAlgorithm.ZIP, null, runContext);
+
+        assertThat(
+            files.keySet(), containsInAnyOrder(
+                "my-flow/executions/exec1/tasks/t/run/out.txt",
+                "my-flow/executions/exec1/tasks/t/run/_files/kept.txt"
+            )
+        );
+    }
+
+    @Test
+    void internalStorageFilesDirectoryOfAnExecutionIsArchivedAsIs() throws Exception {
+        ArchiveCompress probe = task(ArchiveDecompress.ArchiveAlgorithm.ZIP, null).fromDirectory(Property.ofValue("unused")).build();
+        RunContext runContext = TestsUtils.mockRunContext(runContextFactory, probe, Map.of());
+
+        String execution = "kestra:///archive/test/" + IdUtils.create().toLowerCase() + "/my-flow/executions/exec1";
+        put(runContext, execution + "/tasks/t/run/_files/out/kept.txt", "kept");
+
+        ArchiveCompress task = task(ArchiveDecompress.ArchiveAlgorithm.ZIP, null)
+            .fromDirectory(Property.ofValue(execution + "/tasks/t/run/_files"))
+            .build();
+
+        Map<String, String> files = read(task.run(runContext), ArchiveDecompress.ArchiveAlgorithm.ZIP, null, runContext);
+
+        assertThat(files.keySet(), containsInAnyOrder("out/kept.txt"));
+        assertThat(files.get("out/kept.txt"), is("kept"));
+    }
+
+    @Test
+    void internalStorageNamespaceMetadataDirectoryIsRejected() throws Exception {
+        ArchiveCompress task = task(ArchiveDecompress.ArchiveAlgorithm.ZIP, null)
+            .fromDirectory(Property.ofValue("kestra:///archive/test/" + IdUtils.create().toLowerCase() + "/_kv"))
+            .build();
+        RunContext runContext = TestsUtils.mockRunContext(runContextFactory, task, Map.of());
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> task.run(runContext));
+        assertThat(exception.getMessage(), containsString("namespace metadata directory"));
     }
 
     @Test
@@ -173,12 +230,65 @@ class ArchiveCompressDirectoryTest {
         assertThat(exception.getMessage(), containsString("`from` or `fromDirectory`"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = { "..", "../outside", "data/../..", "./.." })
+    void directoryOutsideWorkingDirectoryIsRejected(String directory) throws Exception {
+        ArchiveCompress task = task(ArchiveDecompress.ArchiveAlgorithm.ZIP, null).fromDirectory(Property.ofValue(directory)).build();
+        RunContext runContext = TestsUtils.mockRunContext(runContextFactory, task, Map.of());
+        Files.createDirectories(runContext.workingDir().path().resolve("data"));
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> task.run(runContext));
+        assertThat(exception.getMessage(), containsString("must be a path inside the working directory"));
+    }
+
     @Test
-    void directoryOutsideWorkingDirectoryIsRejected() throws Exception {
-        ArchiveCompress task = task(ArchiveDecompress.ArchiveAlgorithm.ZIP, null).fromDirectory(Property.ofValue("../outside")).build();
+    void symbolicLinkOutsideWorkingDirectoryIsRejected() throws Exception {
+        ArchiveCompress task = task(ArchiveDecompress.ArchiveAlgorithm.ZIP, null).fromDirectory(Property.ofValue("link")).build();
         RunContext runContext = TestsUtils.mockRunContext(runContextFactory, task, Map.of());
 
-        assertThrows(IllegalArgumentException.class, () -> task.run(runContext));
+        Path outside = Files.createTempDirectory("outside");
+        try {
+            Files.createSymbolicLink(runContext.workingDir().path().resolve("link"), outside);
+        } catch (IOException | UnsupportedOperationException e) {
+            Assumptions.abort("symbolic links cannot be created here: " + e.getMessage());
+        }
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> task.run(runContext));
+        assertThat(exception.getMessage(), containsString("must be a path inside the working directory"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("source")
+    void wholeWorkingDirectoryDoesNotArchiveItself(ArchiveDecompress.ArchiveAlgorithm algorithm, ArchiveDecompress.CompressionAlgorithm compression) throws Exception {
+        ArchiveCompress task = task(algorithm, compression).fromDirectory(Property.ofValue(".")).build();
+        RunContext runContext = TestsUtils.mockRunContext(runContextFactory, task, Map.of());
+
+        Path root = runContext.workingDir().path();
+        Files.createDirectories(root.resolve("sub"));
+        Files.writeString(root.resolve("a.txt"), "a");
+        Files.writeString(root.resolve("sub/b.txt"), "b");
+
+        Map<String, String> files = read(task.run(runContext), algorithm, compression, runContext);
+
+        assertThat(files.keySet(), containsInAnyOrder("a.txt", "sub/b.txt"));
+    }
+
+    @Test
+    void arStoresNestedAndLongNames() throws Exception {
+        ArchiveCompress task = task(ArchiveDecompress.ArchiveAlgorithm.AR, null).fromDirectory(Property.ofValue("data")).build();
+        RunContext runContext = TestsUtils.mockRunContext(runContextFactory, task, Map.of());
+
+        Path root = runContext.workingDir().path().resolve("data");
+        Files.createDirectories(root.resolve("2026/deep"));
+        Files.writeString(root.resolve("a.txt"), "a");
+        Files.writeString(root.resolve("a b.txt"), "space");
+        Files.writeString(root.resolve("2026/deep/quarter-three.txt"), "q3");
+
+        Map<String, String> files = read(task.run(runContext), ArchiveDecompress.ArchiveAlgorithm.AR, null, runContext);
+
+        assertThat(files.keySet(), containsInAnyOrder("a.txt", "a b.txt", "2026/deep/quarter-three.txt"));
+        assertThat(files.get("2026/deep/quarter-three.txt"), is("q3"));
+        assertThat(files.get("a b.txt"), is("space"));
     }
 
     @Test
@@ -196,6 +306,10 @@ class ArchiveCompressDirectoryTest {
             .type(ArchiveCompress.class.getName())
             .algorithm(Property.ofValue(algorithm))
             .compression(compression == null ? null : Property.ofValue(compression));
+    }
+
+    private static void put(RunContext runContext, String uri, String content) throws IOException {
+        runContext.storage().putFile(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), URI.create(uri));
     }
 
     /** Decompresses the archive with the plugin's own decompressor and returns the file contents by entry name. */
