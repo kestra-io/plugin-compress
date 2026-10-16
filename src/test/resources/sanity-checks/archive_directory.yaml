@@ -1,0 +1,30 @@
+id: archive_directory
+namespace: sanitychecks.plugin-compress
+
+tasks:
+  - id: working_dir
+    type: io.kestra.plugin.core.flow.WorkingDirectory
+    inputFiles:
+      data/a.txt: "a"
+      data/sub/b.txt: "b"
+      data/sub/deeper/c.txt: "c"
+    tasks:
+      - id: compress
+        type: io.kestra.plugin.compress.ArchiveCompress
+        fromDirectory: "data"
+        algorithm: TAR
+        compression: GZIP
+
+  - id: decompress
+    type: io.kestra.plugin.compress.ArchiveDecompress
+    from: "{{ outputs.compress.uri }}"
+    algorithm: TAR
+    compression: GZIP
+
+  - id: assertFiles
+    type: io.kestra.plugin.core.execution.Fail
+    condition: "{{ outputs.decompress.files | keys | length != 3 }}"
+
+  - id: assertPaths
+    type: io.kestra.plugin.core.execution.Fail
+    condition: '{{ read(outputs.decompress.files["sub/deeper/c.txt"]) != "c" }}'
