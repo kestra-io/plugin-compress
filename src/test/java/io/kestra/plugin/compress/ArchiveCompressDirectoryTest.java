@@ -26,6 +26,7 @@ import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
+import io.kestra.core.storages.Namespace;
 import io.kestra.core.utils.IdUtils;
 import io.kestra.core.utils.TestsUtils;
 
@@ -291,6 +292,67 @@ class ArchiveCompressDirectoryTest {
         assertThat(files.get("a b.txt"), is("space"));
     }
 
+    static Stream<Arguments> namespaceDirectories() {
+        var id = IdUtils.create().toLowerCase();
+        var withExecutionsSegment = "archive.test." + id + ".executions.x.y";
+        return Stream.of(
+            Arguments.of("archive.test." + id, "nsfile://archive.test." + id + "/reports"),
+            Arguments.of("archive.test." + id + ".kestra", "kestra:///archive/test/" + id + "/kestra/_files/reports"),
+            Arguments.of(withExecutionsSegment, "kestra:///archive/test/" + id + "/executions/x/y/_files/reports"),
+            Arguments.of(withExecutionsSegment + ".nsfile", "nsfile://" + withExecutionsSegment + ".nsfile/reports"),
+            Arguments.of(withExecutionsSegment + ".uri", "kestra:///" + (withExecutionsSegment + ".uri").replace('.', '/') + "/_files/reports/")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("namespaceDirectories")
+    void namespaceDirectoryArchivesLatestRevisionsOnly(String namespace, String directory) throws Exception {
+        var task = task(ArchiveDecompress.ArchiveAlgorithm.ZIP, null).fromDirectory(Property.ofValue(directory)).build();
+        var runContext = TestsUtils.mockRunContext(runContextFactory, task, Map.of());
+
+        var files = runContext.storage().namespace(namespace);
+        putNamespaceFile(files, "reports/a.txt", "v1");
+        putNamespaceFile(files, "reports/a.txt", "v2");
+        putNamespaceFile(files, "reports/gone.txt", "gone");
+        files.delete(Path.of("reports/gone.txt"));
+        putNamespaceFile(files, "reports/sub/b.txt", "b");
+        putNamespaceFile(files, "other/c.txt", "c");
+
+        var archived = read(task.run(runContext), ArchiveDecompress.ArchiveAlgorithm.ZIP, null, runContext);
+
+        assertThat(archived.keySet(), containsInAnyOrder("a.txt", "sub/b.txt"));
+        assertThat(archived.get("a.txt"), is("v2"));
+    }
+
+    @Test
+    void namespaceLevelSkipsFilesOfChildNamespaceWithExecutionsSegment() throws Exception {
+        var parent = "archive.test." + IdUtils.create().toLowerCase();
+        var task = task(ArchiveDecompress.ArchiveAlgorithm.ZIP, null)
+            .fromDirectory(Property.ofValue("kestra:///" + parent.replace('.', '/')))
+            .build();
+        var runContext = TestsUtils.mockRunContext(runContextFactory, task, Map.of());
+
+        putNamespaceFile(runContext.storage().namespace(parent + ".executions.x.y"), "reports/a.txt", "namespace file");
+        put(runContext, "kestra:///" + parent.replace('.', '/') + "/my-flow/executions/exec1/tasks/t/run/out.txt", "out");
+
+        var archived = read(task.run(runContext), ArchiveDecompress.ArchiveAlgorithm.ZIP, null, runContext);
+
+        assertThat(archived.keySet(), containsInAnyOrder("my-flow/executions/exec1/tasks/t/run/out.txt"));
+    }
+
+    @Test
+    void missingNamespaceDirectoryIsRejected() throws Exception {
+        var namespace = "archive.test." + IdUtils.create().toLowerCase();
+        var task = task(ArchiveDecompress.ArchiveAlgorithm.ZIP, null)
+            .fromDirectory(Property.ofValue("nsfile://" + namespace + "/nope"))
+            .build();
+        var runContext = TestsUtils.mockRunContext(runContextFactory, task, Map.of());
+        putNamespaceFile(runContext.storage().namespace(namespace), "reports/a.txt", "a");
+
+        var exception = assertThrows(IllegalArgumentException.class, () -> task.run(runContext));
+        assertThat(exception.getMessage(), containsString("Directory not found in the namespace"));
+    }
+
     @Test
     void unsupportedSchemeIsRejected() throws Exception {
         ArchiveCompress task = task(ArchiveDecompress.ArchiveAlgorithm.ZIP, null).fromDirectory(Property.ofValue("http://example.com/dir")).build();
@@ -310,6 +372,10 @@ class ArchiveCompressDirectoryTest {
 
     private static void put(RunContext runContext, String uri, String content) throws IOException {
         runContext.storage().putFile(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), URI.create(uri));
+    }
+
+    private static void putNamespaceFile(Namespace namespace, String path, String content) throws Exception {
+        namespace.putFile(Path.of(path), new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), Namespace.Conflicts.OVERWRITE);
     }
 
     /** Decompresses the archive with the plugin's own decompressor and returns the file contents by entry name. */

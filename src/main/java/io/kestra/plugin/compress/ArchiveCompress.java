@@ -13,9 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveOutputStream;
@@ -150,10 +148,8 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
 )
 public class ArchiveCompress extends AbstractArchive implements RunnableTask<ArchiveCompress.Output>, Data.From {
     private static final Pattern SCHEME_PREFIX = Pattern.compile("^[a-zA-Z][a-zA-Z0-9+.-]+://");
-    // in the internal storage layout, namespace segments, flow ids and execution ids never start with `_`: such names
-    // are reserved for namespace metadata directories like `_files` or `_kv`, versioned and not made of plain files
-    // /{namespace}/{flow-id}/executions/{execution-id}/...: the storage of an execution, made of plain files
-    private static final Pattern EXECUTION_PATH = Pattern.compile("^/(?:[^/_][^/]*/){2,}executions/[^/_][^/]*(?:/[^/_][^/]*(?:/.*)?)?/?$");
+    // only the layout StorageContext writes, so that a namespace like `a.b.executions.c.d` is not taken for an execution
+    private static final Pattern EXECUTION_PATH = Pattern.compile("^/(?:[^/_][^/]*/){2,}executions/[^/_][^/]*(?:/(?:tasks|trigger|inputs)(?:/[^/_][^/]*(?:/.*)?)?)?/?$");
     // /my/namespace/_files/some/dir: the internal storage location of the files of the namespace my.namespace
     private static final Pattern NAMESPACE_FILES_PATH = Pattern.compile("^/((?:[^/_][^/]*/)*[^/_][^/]*)/_files(?:/(.*))?$");
 
@@ -210,10 +206,10 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
 
     @SuppressWarnings("unchecked")
     private void writeArchive(RunContext runContext, ArchiveOutputStream archiveInputStream, Path output) throws Exception {
-        Set<String> writtenNames = new HashSet<>();
+        var writtenNames = new HashSet<String>();
 
         if (this.fromDirectory != null) {
-            String directory = runContext.render(this.fromDirectory).as(String.class).filter(d -> !d.isBlank())
+            var directory = runContext.render(this.fromDirectory).as(String.class).filter(d -> !d.isBlank())
                 .orElseThrow(() -> new IllegalArgumentException("`fromDirectory` must not be empty"));
             writtenNames.addAll(this.writeDirectory(runContext, archiveInputStream, directory, output));
         }
@@ -260,26 +256,22 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
         archiveInputStream.finish();
     }
 
-    /**
-     * An item of a directory to archive: its path relative to the directory root and where its content lives.
-     * For files, either {@code localPath} (already on the working directory) or {@code storageUri} (to fetch from
-     * Kestra's internal storage) is set; neither is for directories.
-     */
+    // a file's content is either already in the working directory (localPath) or in internal storage (storageUri)
     private record DirectoryItem(String name, boolean directory, Path localPath, URI storageUri) {
     }
 
     private Set<String> writeDirectory(RunContext runContext, ArchiveOutputStream archive, String directory, Path output) throws Exception {
-        boolean directoriesSupported = runContext.render(this.algorithm).as(ArchiveAlgorithm.class).orElseThrow() != ArchiveAlgorithm.AR;
+        var directoriesSupported = runContext.render(this.algorithm).as(ArchiveAlgorithm.class).orElseThrow() != ArchiveAlgorithm.AR;
 
-        List<DirectoryItem> items = this.listDirectory(runContext, directory, output);
+        var items = this.listDirectory(runContext, directory, output);
         items.sort(Comparator.comparing(DirectoryItem::name));
-        Set<String> names = new HashSet<>();
+        var names = new HashSet<String>();
 
-        for (DirectoryItem item : items) {
+        for (var item : items) {
             if (item.directory()) {
                 if (directoriesSupported) {
                     // the entry factories read the type from a real directory, whose name does not matter
-                    Path tempDir = Files.createTempDirectory(runContext.workingDir().path(), "dir");
+                    var tempDir = Files.createTempDirectory(runContext.workingDir().path(), "dir");
                     try {
                         archive.putArchiveEntry(archive.createArchiveEntry(tempDir.toFile(), item.name() + "/"));
                         archive.closeArchiveEntry();
@@ -291,18 +283,18 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
             }
 
             names.add(item.name());
-            Path file = item.localPath();
-            boolean temporary = file == null;
+            var file = item.localPath();
+            var temporary = file == null;
             if (temporary) {
                 file = runContext.workingDir().createTempFile();
-                try (InputStream in = runContext.storage().getFile(item.storageUri())) {
+                try (var in = runContext.storage().getFile(item.storageUri())) {
                     Files.copy(in, file, StandardCopyOption.REPLACE_EXISTING);
                 }
             }
 
             try {
                 archive.putArchiveEntry(archive.createArchiveEntry(file.toFile(), item.name()));
-                try (InputStream in = Files.newInputStream(file)) {
+                try (var in = Files.newInputStream(file)) {
                     IOUtils.copy(in, archive);
                 }
                 archive.closeArchiveEntry();
@@ -318,19 +310,18 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
 
     private List<DirectoryItem> listDirectory(RunContext runContext, String directory, Path output) throws Exception {
         // only a `scheme://` value is a URI: anything else is a working directory path, which may hold spaces or backslashes
-        Matcher schemeMatcher = SCHEME_PREFIX.matcher(directory);
-        URI uri = schemeMatcher.find() ? URI.create(directory) : null;
-        String scheme = uri == null ? null : uri.getScheme();
+        URI uri = SCHEME_PREFIX.matcher(directory).find() ? URI.create(directory) : null;
+        var scheme = uri == null ? null : uri.getScheme();
 
         if (Namespace.NAMESPACE_FILE_SCHEME.equals(scheme)) {
             return this.listNamespaceDirectory(runContext, uri.getAuthority(), uri.getPath());
         } else if (StorageContext.KESTRA_SCHEME.equals(scheme)) {
-            String path = uri.getPath() == null || uri.getPath().isEmpty() ? "/" : uri.getPath();
+            var path = uri.getPath() == null || uri.getPath().isEmpty() ? "/" : uri.getPath();
 
             // a `_files` directory inside an execution is plain execution output, not namespace files
             if (!EXECUTION_PATH.matcher(path).matches()) {
-                // namespace files are versioned, their storage layout (old revisions, deleted files) must not be listed as is
-                Matcher namespaceFiles = NAMESPACE_FILES_PATH.matcher(path);
+                // namespace files are versioned: their raw storage holds old revisions and deleted files
+                var namespaceFiles = NAMESPACE_FILES_PATH.matcher(path);
                 if (namespaceFiles.matches()) {
                     return this.listNamespaceDirectory(runContext, namespaceFiles.group(1).replace('/', '.'), "/" + Objects.toString(namespaceFiles.group(2), ""));
                 }
@@ -339,7 +330,7 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
                 }
             }
 
-            List<DirectoryItem> items = new ArrayList<>();
+            var items = new ArrayList<DirectoryItem>();
             this.listStorageDirectory(runContext, uri, "", items);
             return items;
         } else if (scheme != null) {
@@ -350,18 +341,18 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
     }
 
     private List<DirectoryItem> listNamespaceDirectory(RunContext runContext, String namespaceName, String path) throws Exception {
-        Namespace namespace = namespaceName == null ? runContext.storage().namespace() : runContext.storage().namespace(namespaceName);
+        var namespace = namespaceName == null ? runContext.storage().namespace() : runContext.storage().namespace(namespaceName);
         // normalised like children() does with its argument, so that the paths it returns start with the prefix
-        String root = NamespaceFile.toLogicalPath(NamespaceFile.normalize(Path.of(path == null || path.isEmpty() ? "/" : path)));
-        String prefix = root.endsWith("/") ? root : root + "/";
+        var root = NamespaceFile.toLogicalPath(NamespaceFile.normalize(Path.of(path == null || path.isEmpty() ? "/" : path)));
+        var prefix = root.endsWith("/") ? root : root + "/";
 
         if (!"/".equals(prefix) && !isNamespaceDirectory(namespace, prefix)) {
             throw new IllegalArgumentException("Directory not found in the namespace `" + namespace.namespace() + "`: " + root);
         }
 
-        List<DirectoryItem> items = new ArrayList<>();
-        for (NamespaceFileMetadata child : namespace.children(prefix, true)) {
-            String childPath = child.getPath();
+        var items = new ArrayList<DirectoryItem>();
+        for (var child : namespace.children(prefix, true)) {
+            var childPath = child.getPath();
             if (!childPath.startsWith(prefix) || childPath.length() == prefix.length()) {
                 continue;
             }
@@ -376,10 +367,7 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
         return items;
     }
 
-    /**
-     * Whether {@code prefix}, a normalised path ending with {@code /}, is a directory of the namespace: directories are
-     * stored as metadata entries whose path ends with {@code /}, listed among the children of their parent.
-     */
+    // namespace directories are metadata entries whose path ends with `/`, listed among the children of their parent
     private static boolean isNamespaceDirectory(Namespace namespace, String prefix) throws IOException {
         return namespace.children(NamespaceFileMetadata.parentPath(prefix), false).stream()
             .anyMatch(child -> child.isDirectory() && child.getPath().equals(prefix));
@@ -387,12 +375,12 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
 
     private void listStorageDirectory(RunContext runContext, URI directory, String relative, List<DirectoryItem> items) throws Exception {
         // the raw path keeps names escaped: decoding it would make the child URIs invalid for names like `my sub`
-        String base = directory.getRawPath().endsWith("/") ? directory.getRawPath() : directory.getRawPath() + "/";
+        var base = directory.getRawPath().endsWith("/") ? directory.getRawPath() : directory.getRawPath() + "/";
 
-        for (FileAttributes attributes : runContext.storage().list(directory)) {
-            String name = relative + attributes.getFileName();
+        for (var attributes : runContext.storage().list(directory)) {
+            var name = relative + attributes.getFileName();
             // encoded as an absolute path, so that a name like `a:b` is not read as a scheme
-            URI child = URI.create(StorageContext.KESTRA_PROTOCOL + base + new URI(null, null, "/" + attributes.getFileName(), null).getRawPath().substring(1));
+            var child = URI.create(StorageContext.KESTRA_PROTOCOL + base + new URI(null, null, "/" + attributes.getFileName(), null).getRawPath().substring(1));
 
             // namespace metadata directories (`_files`, `_kv`, ...) are versioned, outside executions they are not plain files
             if (attributes.getFileName().startsWith(StorageContext.RESERVED_NAMESPACE_DIR_PREFIX) && !EXECUTION_PATH.matcher(child.getPath()).matches()) {
@@ -409,9 +397,9 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
     }
 
     private List<DirectoryItem> listWorkingDirectory(RunContext runContext, String directory, Path output) throws IOException {
-        Path workingDir = runContext.workingDir().path().toRealPath();
+        var workingDir = runContext.workingDir().path().toRealPath();
         // normalised then resolved to its real path, so that neither `..` nor a symbolic link can lead outside the working directory
-        Path root = workingDir.resolve(directory).normalize();
+        var root = workingDir.resolve(directory).normalize();
         if (!root.startsWith(workingDir)) {
             throw new IllegalArgumentException("`fromDirectory` must be a path inside the working directory: " + directory);
         }
@@ -424,16 +412,16 @@ public class ArchiveCompress extends AbstractArchive implements RunnableTask<Arc
         }
 
         // the archive is being written in the working directory, it must not archive itself (e.g. with `fromDirectory: "."`)
-        Path excluded = output.toRealPath();
+        var excluded = output.toRealPath();
 
-        List<DirectoryItem> items = new ArrayList<>();
-        try (Stream<Path> walk = Files.walk(root)) {
-            for (Path path : (Iterable<Path>) walk::iterator) {
+        var items = new ArrayList<DirectoryItem>();
+        try (var walk = Files.walk(root)) {
+            for (var path : (Iterable<Path>) walk::iterator) {
                 if (path.equals(root) || path.equals(excluded)) {
                     continue;
                 }
 
-                String name = root.relativize(path).toString().replace(File.separatorChar, '/');
+                var name = root.relativize(path).toString().replace(File.separatorChar, '/');
                 if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
                     items.add(new DirectoryItem(name, true, null, null));
                 } else if (Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
