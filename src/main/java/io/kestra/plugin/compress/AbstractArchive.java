@@ -111,7 +111,12 @@ public abstract class AbstractArchive extends AbstractTask {
     protected ArchiveOutputStream archiveOutputStream(OutputStream outputStream, RunContext runContext) throws ArchiveException, IllegalVariableEvaluationException {
         var renderedAlgorithm = runContext.render(this.algorithm).as(ArchiveAlgorithm.class);
         return switch (renderedAlgorithm.orElseThrow(() -> new IllegalArgumentException("Unknown algorithm"))) {
-            case AR -> new ArArchiveOutputStream(outputStream);
+            case AR -> {
+                ArArchiveOutputStream out = new ArArchiveOutputStream(outputStream);
+                out.setLongFileMode(ArArchiveOutputStream.LONGFILE_BSD); // allow file names longer than 16 chars, e.g. nested paths
+
+                yield out;
+            }
             case CPIO -> new CpioArchiveOutputStream(outputStream);
             case JAR -> new JarArchiveOutputStream(outputStream);
             case TAR -> {
