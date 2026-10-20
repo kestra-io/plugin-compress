@@ -148,8 +148,9 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
 )
 public class ArchiveCompress extends AbstractArchive implements RunnableTask<ArchiveCompress.Output>, Data.From {
     private static final Pattern SCHEME_PREFIX = Pattern.compile("^[a-zA-Z][a-zA-Z0-9+.-]+://");
-    // only the layout StorageContext writes, so that a namespace like `a.b.executions.c.d` is not taken for an execution
-    private static final Pattern EXECUTION_PATH = Pattern.compile("^/(?:[^/_][^/]*/){2,}executions/[^/_][^/]*(?:/(?:tasks|trigger|inputs)(?:/[^/_][^/]*(?:/.*)?)?)?/?$");
+    // only the layout StorageContext writes (tasks/<task>/<taskRun>, trigger/<trigger>, inputs/<input>), so that a namespace like `a.b.executions.c.d` or `a.b.executions.c.tasks.d` is not taken for an execution
+    private static final Pattern EXECUTION_PATH = Pattern
+        .compile("^/(?:[^/_][^/]*/){2,}executions/[^/_][^/]*(?:/tasks(?:/[^/_][^/]*(?:/[^/_][^/]*(?:/.*)?)?)?|/(?:trigger|inputs)(?:/[^/_][^/]*(?:/.*)?)?)?/?$");
     // /my/namespace/_files/some/dir: the internal storage location of the files of the namespace my.namespace
     private static final Pattern NAMESPACE_FILES_PATH = Pattern.compile("^/((?:[^/_][^/]*/)*[^/_][^/]*)/_files(?:/(.*))?$");
 
