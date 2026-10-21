@@ -121,6 +121,8 @@ class ArchiveCompressDirectoryTest {
         put(runContext, namespace + "/_kv/key", "kv");
         put(runContext, namespace + "/my-flow/executions/exec1/tasks/t/run/out.txt", "out");
         put(runContext, namespace + "/my-flow/executions/exec1/tasks/t/run/_files/kept.txt", "kept");
+        put(runContext, namespace + "/my-flow/executions/exec1/inputs/file/_data.csv", "input");
+        put(runContext, namespace + "/my-flow/executions/exec1/trigger/t/_event.json", "trigger");
 
         ArchiveCompress task = task(ArchiveDecompress.ArchiveAlgorithm.ZIP, null).fromDirectory(Property.ofValue(namespace)).build();
 
@@ -129,7 +131,9 @@ class ArchiveCompressDirectoryTest {
         assertThat(
             files.keySet(), containsInAnyOrder(
                 "my-flow/executions/exec1/tasks/t/run/out.txt",
-                "my-flow/executions/exec1/tasks/t/run/_files/kept.txt"
+                "my-flow/executions/exec1/tasks/t/run/_files/kept.txt",
+                "my-flow/executions/exec1/inputs/file/_data.csv",
+                "my-flow/executions/exec1/trigger/t/_event.json"
             )
         );
     }
@@ -299,6 +303,8 @@ class ArchiveCompressDirectoryTest {
             Arguments.of("archive.test." + id, "nsfile://archive.test." + id + "/reports"),
             Arguments.of("archive.test." + id + ".kestra", "kestra:///archive/test/" + id + "/kestra/_files/reports"),
             Arguments.of(withExecutionsSegment, "kestra:///archive/test/" + id + "/executions/x/y/_files/reports"),
+            Arguments.of("archive.test." + id + ".executions.x.tasks.y", "kestra:///archive/test/" + id + "/executions/x/tasks/y/_files/reports"),
+            Arguments.of("archive.test." + id + ".executions.x.inputs.y", "kestra:///archive/test/" + id + "/executions/x/inputs/y/_files/reports"),
             Arguments.of(withExecutionsSegment + ".nsfile", "nsfile://" + withExecutionsSegment + ".nsfile/reports"),
             Arguments.of(withExecutionsSegment + ".uri", "kestra:///" + (withExecutionsSegment + ".uri").replace('.', '/') + "/_files/reports/")
         );
@@ -324,15 +330,17 @@ class ArchiveCompressDirectoryTest {
         assertThat(archived.get("a.txt"), is("v2"));
     }
 
-    @Test
-    void namespaceLevelSkipsFilesOfChildNamespaceWithExecutionsSegment() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = { "executions.x.y", "executions.x.inputs.y" })
+    void namespaceLevelSkipsFilesOfChildNamespaceWithExecutionsSegment(String child) throws Exception {
         var parent = "archive.test." + IdUtils.create().toLowerCase();
         var task = task(ArchiveDecompress.ArchiveAlgorithm.ZIP, null)
             .fromDirectory(Property.ofValue("kestra:///" + parent.replace('.', '/')))
             .build();
         var runContext = TestsUtils.mockRunContext(runContextFactory, task, Map.of());
 
-        putNamespaceFile(runContext.storage().namespace(parent + ".executions.x.y"), "reports/a.txt", "namespace file");
+        putNamespaceFile(runContext.storage().namespace(parent + "." + child), "reports/a.txt", "namespace file");
+        put(runContext, "kestra:///" + (parent + "." + child).replace('.', '/') + "/_kv/key", "kv");
         put(runContext, "kestra:///" + parent.replace('.', '/') + "/my-flow/executions/exec1/tasks/t/run/out.txt", "out");
 
         var archived = read(task.run(runContext), ArchiveDecompress.ArchiveAlgorithm.ZIP, null, runContext);

@@ -4,7 +4,7 @@ Compress, decompress, archive, extract, encrypt, and decrypt files from Kestra f
 
 ## Tasks
 
-`ArchiveCompress` creates an archive from a `from` source — set `algorithm` to the archive format (`TAR`, `ZIP`, `JAR`, `AR`, or `CPIO`). Optionally set `compression` to also compress the archive (e.g. `GZIP` for `.tar.gz`). Note: `ARJ` and `DUMP` are supported for extraction only.
+`ArchiveCompress` creates an archive from a `from` source, a `fromDirectory` directory, or both — set `algorithm` to the archive format (`TAR`, `ZIP`, `JAR`, `AR`, or `CPIO`). `fromDirectory` archives a whole directory recursively, keeping relative paths: a namespace directory (`nsfile:///reports`, or `nsfile://my.namespace/reports` for another namespace), an internal storage directory (`kestra://...`), or a directory of the task working directory (e.g. `data`). Optionally set `compression` to also compress the archive (e.g. `GZIP` for `.tar.gz`). Note: `ARJ` and `DUMP` are supported for extraction only.
 
 `ArchiveDecompress` extracts an archive — set `from` (a `kestra://` URI) and `algorithm`. Optionally set `compression` if the archive is also compressed. `ARJ` and `DUMP` are supported here but not for compression.
 
