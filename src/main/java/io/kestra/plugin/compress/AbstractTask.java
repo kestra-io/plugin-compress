@@ -46,16 +46,16 @@ public abstract class AbstractTask extends Task {
     protected CompressorInputStream compressorInputStream(CompressionAlgorithm compression, InputStream inputStream) throws IOException {
         return switch (compression) {
             case BROTLI -> new BrotliCompressorInputStream(inputStream);
-            case BZIP2 -> new BZip2CompressorInputStream(inputStream);
+            case BZIP2 -> new BZip2CompressorInputStream(inputStream, true);
             case DEFLATE -> new DeflateCompressorInputStream(inputStream);
             case DEFLATE64 -> new Deflate64CompressorInputStream(inputStream);
-            case GZIP -> new GzipCompressorInputStream(inputStream);
+            case GZIP -> new GzipCompressorInputStream(inputStream, true);
             case LZ4BLOCK -> new BlockLZ4CompressorInputStream(inputStream);
             case LZ4FRAME -> new FramedLZ4CompressorInputStream(inputStream);
             case LZMA -> new LZMACompressorInputStream(inputStream);
             case SNAPPY -> new SnappyCompressorInputStream(inputStream);
             case SNAPPYFRAME -> new FramedSnappyCompressorInputStream(inputStream);
-            case XZ -> new XZCompressorInputStream(inputStream);
+            case XZ -> new XZCompressorInputStream(inputStream, true);
             case ZSTD -> new ZstdCompressorInputStream(inputStream);
             case Z -> new ZCompressorInputStream(inputStream);
         };
