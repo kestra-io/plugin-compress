@@ -43,19 +43,24 @@ import lombok.experimental.SuperBuilder;
 @Getter
 @NoArgsConstructor
 public abstract class AbstractTask extends Task {
+    private static final byte[] GZIP_MAGIC = {0x1f, (byte) 0x8b};
+    private static final byte[] BZIP2_MAGIC = {'B', 'Z', 'h'};
+    private static final byte[] LZ4_FRAME_MAGIC = {0x04, 0x22, 0x4d, 0x18};
+
     protected CompressorInputStream compressorInputStream(CompressionAlgorithm compression, InputStream inputStream) throws IOException {
         return switch (compression) {
             case BROTLI -> new BrotliCompressorInputStream(inputStream);
-            case BZIP2 -> new BZip2CompressorInputStream(inputStream, true);
+            case BZIP2 -> new ConcatenatedMembersInputStream(inputStream, BZIP2_MAGIC, in -> new BZip2CompressorInputStream(in, false));
             case DEFLATE -> new DeflateCompressorInputStream(inputStream);
             case DEFLATE64 -> new Deflate64CompressorInputStream(inputStream);
-            case GZIP -> new GzipCompressorInputStream(inputStream, true);
+            case GZIP -> new ConcatenatedMembersInputStream(inputStream, GZIP_MAGIC, in -> GzipCompressorInputStream.builder().setInputStream(in).get());
             case LZ4BLOCK -> new BlockLZ4CompressorInputStream(inputStream);
-            case LZ4FRAME -> new FramedLZ4CompressorInputStream(inputStream);
+            case LZ4FRAME -> new ConcatenatedMembersInputStream(inputStream, LZ4_FRAME_MAGIC, in -> new FramedLZ4CompressorInputStream(in, false));
             case LZMA -> new LZMACompressorInputStream(inputStream);
             case SNAPPY -> new SnappyCompressorInputStream(inputStream);
             case SNAPPYFRAME -> new FramedSnappyCompressorInputStream(inputStream);
-            case XZ -> new XZCompressorInputStream(inputStream, true);
+            // XZ reads concatenated streams and the stream padding allowed by the format by itself
+            case XZ -> XZCompressorInputStream.builder().setInputStream(inputStream).setDecompressConcatenated(true).get();
             case ZSTD -> new ZstdCompressorInputStream(inputStream);
             case Z -> new ZCompressorInputStream(inputStream);
         };
