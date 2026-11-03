@@ -4,8 +4,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -87,7 +87,7 @@ class FileDecompressTest {
     @ParameterizedTest
     @EnumSource(value = ArchiveDecompress.CompressionAlgorithm.class, names = {"GZIP", "BZIP2", "XZ", "LZ4FRAME"})
     void ignoresTrailingZeroPaddingAfterTheLastMember(ArchiveDecompress.CompressionAlgorithm compression) throws Exception {
-        // tape and block writers pad files with zero bytes; GNU gzip ignores them after a valid member
+        // tape and block writers pad files with zero bytes, GNU gzip ignores them after a valid member
         var padded = new ByteArrayOutputStream();
         padded.writeBytes(member(compression, "first\n"));
         padded.writeBytes(member(compression, "second\n"));
@@ -100,8 +100,8 @@ class FileDecompressTest {
     void decompressesATarGzWithTrailingZeroPadding() throws Exception {
         var tar = new ByteArrayOutputStream();
         try (var out = new TarArchiveOutputStream(tar)) {
-            byte[] content = "1".getBytes(StandardCharsets.UTF_8);
-            TarArchiveEntry entry = new TarArchiveEntry("folder/1.txt");
+            var content = "1".getBytes(StandardCharsets.UTF_8);
+            var entry = new TarArchiveEntry("folder/1.txt");
             entry.setSize(content.length);
             out.putArchiveEntry(entry);
             out.write(content);
@@ -110,9 +110,9 @@ class FileDecompressTest {
         var padded = new ByteArrayOutputStream();
         padded.writeBytes(member(ArchiveDecompress.CompressionAlgorithm.GZIP, tar.toByteArray()));
         padded.writeBytes(new byte[1024]);
-        URI uri = compressUtils.uploadToStorageBytes(padded.toByteArray());
+        var uri = compressUtils.uploadToStorageBytes(padded.toByteArray());
 
-        ArchiveDecompress decompress = ArchiveDecompress.builder()
+        var decompress = ArchiveDecompress.builder()
             .id(IdUtils.create())
             .type(ArchiveDecompress.class.getName())
             .algorithm(Property.ofValue(ArchiveDecompress.ArchiveAlgorithm.TAR))
@@ -120,7 +120,7 @@ class FileDecompressTest {
             .from(Property.ofValue(uri.toString()))
             .build();
 
-        ArchiveDecompress.Output output = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, Map.of()));
+        var output = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, Map.of()));
 
         assertThat(output.getFiles().size(), is(1));
         assertThat(
@@ -131,9 +131,9 @@ class FileDecompressTest {
 
     @Test
     void stillRejectsInputThatIsNotGzip() throws Exception {
-        URI uri = compressUtils.uploadToStorageBytes(new byte[512]);
+        var uri = compressUtils.uploadToStorageBytes(new byte[512]);
 
-        FileDecompress decompress = FileDecompress.builder()
+        var decompress = FileDecompress.builder()
             .id(IdUtils.create())
             .type(FileDecompress.class.getName())
             .compression(Property.ofValue(ArchiveDecompress.CompressionAlgorithm.GZIP))
@@ -144,16 +144,16 @@ class FileDecompressTest {
     }
 
     private String decompress(ArchiveDecompress.CompressionAlgorithm compression, byte[] content) throws Exception {
-        URI uri = compressUtils.uploadToStorageBytes(content);
+        var uri = compressUtils.uploadToStorageBytes(content);
 
-        FileDecompress decompress = FileDecompress.builder()
+        var decompress = FileDecompress.builder()
             .id(IdUtils.create())
             .type(FileDecompress.class.getName())
             .compression(Property.ofValue(compression))
             .from(Property.ofValue(uri.toString()))
             .build();
 
-        FileDecompress.Output output = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, Map.of()));
+        var output = decompress.run(TestsUtils.mockRunContext(runContextFactory, decompress, Map.of()));
 
         return CharStreams.toString(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, output.getUri()), StandardCharsets.UTF_8));
     }
